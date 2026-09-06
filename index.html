@@ -396,12 +396,16 @@
         <select id="insp-fasal"></select>
         <div class="row">
           <div>
-            <label>Maadada 1aad</label>
+            <label>Maadada 1aad (waajib)</label>
             <input type="text" id="insp-maadada1" placeholder="Tusaale: Xisaabta">
           </div>
           <div>
-            <label>Maadada 2aad</label>
+            <label>Maadada 2aad (ikhtiyaari)</label>
             <input type="text" id="insp-maadada2" placeholder="Tusaale: Naxwaha">
+          </div>
+          <div>
+            <label>Maadada 3aad (ikhtiyaari)</label>
+            <input type="text" id="insp-maadada3" placeholder="Tusaale: Sayniska">
           </div>
         </div>
         <div class="center" style="margin-top:14px;">
@@ -1069,12 +1073,14 @@ function startInspection(){
   const fasal = document.getElementById('insp-fasal').value;
   const m1 = document.getElementById('insp-maadada1').value.trim();
   const m2 = document.getElementById('insp-maadada2').value.trim();
+  const m3 = document.getElementById('insp-maadada3').value.trim();
   if(!teacherId){ toast('Fadlan dooro macallinka.'); return; }
   if(!fasal){ toast('Fadlan dooro fasalka.'); return; }
-  if(!m1 || !m2){ toast('Fadlan geli labada maadooyin.'); return; }
-  currentInspection = {teacherId, teacherName: TEACHERS[teacherId].name, fasal, m1, m2};
+  if(!m1){ toast('Fadlan geli ugu yaraan Maadada 1aad.'); return; }
+  const maadooyinka = [m1, m2, m3].filter(m=>m);
+  currentInspection = {teacherId, teacherName: TEACHERS[teacherId].name, fasal, maadooyinka};
   const area = document.getElementById('insp-form-area');
-  area.innerHTML = [m1, m2].map((maadada, idx)=>`
+  area.innerHTML = maadooyinka.map((maadada, idx)=>`
     <div class="card">
       <h3>${escapeHtml(maadada)}</h3>
       ${INSPECTION_ITEMS.map(it=>`
@@ -1094,8 +1100,8 @@ function startInspection(){
 }
 function saveInspection(){
   if(!currentInspection) return;
-  const {teacherId, teacherName, fasal, m1, m2} = currentInspection;
-  const subjects = [m1, m2].map((maadada, idx)=>{
+  const {teacherId, teacherName, fasal, maadooyinka} = currentInspection;
+  const subjects = maadooyinka.map((maadada, idx)=>{
     const items = {};
     INSPECTION_ITEMS.forEach(it=>{ items[it.id] = document.getElementById(`insp-${idx}-${it.id}`).checked; });
     return {maadada, items, notes: (document.getElementById(`insp-notes-${idx}`).value || '').trim()};
@@ -1106,6 +1112,7 @@ function saveInspection(){
     document.getElementById('insp-form-area').innerHTML = '';
     document.getElementById('insp-maadada1').value = '';
     document.getElementById('insp-maadada2').value = '';
+    document.getElementById('insp-maadada3').value = '';
     document.getElementById('insp-teacher').value = '';
     document.getElementById('insp-fasal').value = '';
     currentInspection = null;
