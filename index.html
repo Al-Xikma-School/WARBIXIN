@@ -296,6 +296,21 @@
         <p class="muted">Fasal + Xannaano + Maado kasta oo warbixin loo soo gudbiyay.</p>
         <div id="progress-list"></div>
       </div>
+
+      <div class="card">
+        <h3>📅 Xaalada Macallimiinta Maalin ahaan</h3>
+        <p class="muted">Dooro taariikh si aad u aragto immisa arday macalin kastaa soo gudbiyay maalintaas, iyo cidii aan waxba soo gudbin.</p>
+        <label>Taariikhda</label>
+        <input type="date" id="daily-date" onchange="renderDailyTeacherStatus()">
+        <div id="daily-status" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>🔍 Raadi Arday (Warbixinnada Macallimiinta)</h3>
+        <p class="muted">Ku raadi magaca ardayga si aad u aragto macallimiinta soo gudbiyay warbixin ku saabsan, cilladda, iyo goorma.</p>
+        <input type="text" id="student-report-search" placeholder="Qor magaca ardayga..." oninput="renderStudentReportSearch()">
+        <div id="student-report-results" style="margin-top:14px;"></div>
+      </div>
     </div>
 
     <div id="tab-students" class="admin-tab hidden">
@@ -689,7 +704,7 @@ function switchAdminTab(tab){
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.add('hidden'));
   document.getElementById('tab-'+tab).classList.remove('hidden');
   if(tab==='dash') renderDashboard();
-  if(tab==='progress') renderProgress();
+  if(tab==='progress'){ renderProgress(); initDailyDateDefault(); renderDailyTeacherStatus(); renderStudentReportSearch(); }
   if(tab==='students') renderStudentList();
   if(tab==='teachers') renderTeacherList();
   if(tab==='inspect'){ populateInspectTeacherDropdown(); renderInspectionRanking(); renderInspectionHistory(); }
@@ -812,6 +827,74 @@ function renderProgress(){
       <ul class="detail-list">
         ${g.teachers.map(t=>`<li>👩‍🏫 ${escapeHtml(t.name)} — ${t.count} arday — <span class="muted">${new Date(t.time).toLocaleString('so')}</span></li>`).join('')}
       </ul>
+    </div>`).join('');
+}
+function initDailyDateDefault(){
+  const inp = document.getElementById('daily-date');
+  if(inp && !inp.value){
+    const d = new Date();
+    const iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    inp.value = iso;
+  }
+}
+function renderDailyTeacherStatus(){
+  const el = document.getElementById('daily-status');
+  const dateInp = document.getElementById('daily-date');
+  if(!el || !dateInp) return;
+  const dateVal = dateInp.value;
+  if(!dateVal){ el.innerHTML = '<p class="muted">Dooro taariikh.</p>'; return; }
+  const dayStart = new Date(dateVal+'T00:00:00').getTime();
+  const dayEnd = dayStart + 24*60*60*1000;
+  const counts = {}; // teacherId -> count
+  Object.entries(SUBMISSIONS).forEach(([teacherId, batches])=>{
+    Object.values(batches || {}).forEach(b=>{
+      if(b.submittedAt >= dayStart && b.submittedAt < dayEnd){
+        counts[teacherId] = (counts[teacherId] || 0) + Object.keys(b.students||{}).length;
+      }
+    });
+  });
+  const rows = Object.entries(TEACHERS).map(([id,t])=>({name:t.name, count: counts[id] || 0}))
+    .sort((a,b)=> b.count - a.count);
+  if(rows.length===0){ el.innerHTML = '<p class="muted">Weli macalin lama darin.</p>'; return; }
+  const submitted = rows.filter(r=>r.count>0);
+  const notSubmitted = rows.filter(r=>r.count===0);
+  el.innerHTML = `
+    <p class="muted" style="margin-bottom:8px;">✅ ${submitted.length} macalin ayaa wax soo gudbiyay · ⚠️ ${notSubmitted.length} macalin ma soo gudbin waxba</p>
+    ${rows.map(r=>`
+      <div class="student-row">
+        <div style="flex:1;">
+          <div class="student-name">${escapeHtml(r.name)}</div>
+        </div>
+        ${r.count>0
+          ? `<span class="pill" style="background:#e4ede0;color:#2e5e3a;">${r.count} arday</span>`
+          : `<span class="pill" style="background:#f6dede;color:#8a2f2f;">⚠️ Ma soo gudbin</span>`}
+      </div>`).join('')}
+  `;
+}
+function renderStudentReportSearch(){
+  const el = document.getElementById('student-report-results');
+  const input = document.getElementById('student-report-search');
+  if(!el || !input) return;
+  const q = input.value.trim().toLowerCase();
+  if(!q){ el.innerHTML = '<p class="muted">Qor magaca ardayga si natiijooyinka loo muujiyo.</p>'; return; }
+  const results = [];
+  Object.values(SUBMISSIONS).forEach(batches=>{
+    Object.values(batches || {}).forEach(b=>{
+      Object.values(b.students || {}).forEach(info=>{
+        if(info.name && info.name.toLowerCase().includes(q)){
+          results.push({name: info.name, cilad: info.cilad, teacherName: b.teacherName, maadada: b.maadada, fasal: b.fasal, section: b.section, submittedAt: b.submittedAt});
+        }
+      });
+    });
+  });
+  results.sort((a,b)=> b.submittedAt - a.submittedAt);
+  if(results.length===0){ el.innerHTML = '<p class="muted">Wax natiijo ah lama helin.</p>'; return; }
+  el.innerHTML = results.map(r=>`
+    <div class="flagged-item">
+      <div class="flagged-name">${escapeHtml(r.name)} — ${escapeHtml(r.fasal)} ${escapeHtml(r.section)}</div>
+      <p style="margin:4px 0;">📘 ${escapeHtml(r.maadada)} · 👩‍🏫 ${escapeHtml(r.teacherName)}</p>
+      <p class="muted" style="margin:0 0 4px;">📝 ${escapeHtml(r.cilad || '')}</p>
+      <span class="muted" style="font-size:.85rem;">${new Date(r.submittedAt).toLocaleString('so')}</span>
     </div>`).join('');
 }
 
