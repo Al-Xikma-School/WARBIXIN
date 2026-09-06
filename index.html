@@ -265,6 +265,8 @@
       <div class="tab" data-tab="progress" onclick="switchAdminTab('progress')">✅ Xaalada Gudbinta</div>
       <div class="tab" data-tab="students" onclick="switchAdminTab('students')">🎓 Ardayda</div>
       <div class="tab" data-tab="teachers" onclick="switchAdminTab('teachers')">👩‍🏫 Macallimiinta</div>
+      <div class="tab" data-tab="inspect" onclick="switchAdminTab('inspect')">🔍 Taftiishka Maamulka</div>
+      <div class="tab" data-tab="meetings" onclick="switchAdminTab('meetings')">🗓️ Shirarka</div>
     </div>
 
     <div id="tab-dash" class="admin-tab">
@@ -354,6 +356,10 @@
             <label>PIN (4 lambar)</label>
             <input type="text" id="new-t-pin" maxlength="8">
           </div>
+          <div>
+            <label>Telefoonka (WhatsApp)</label>
+            <input type="tel" id="new-t-phone">
+          </div>
         </div>
         <div style="margin-top:12px;">
           <button class="btn-primary btn-sm" onclick="addTeacher()">+ Ku dar Macalin</button>
@@ -363,6 +369,51 @@
         <h3>Liiska Macallimiinta</h3>
         <div id="teacher-list"></div>
       </div>
+    </div>
+
+    <div id="tab-inspect" class="admin-tab hidden">
+      <div class="card">
+        <h2>🔍 Taftiishka Maamulka</h2>
+        <p class="muted">Dooro macallinka aad rabto inaad taftiisho iyo labada maadooyin ee aad ka taftiishayso, kadibna buuxi checklist-ka. Qaar waa wax aad buugta ka baaraysid, qaarna waa wax aad ardayda su'aal ku ogaataa.</p>
+        <label>Macallinka</label>
+        <select id="insp-teacher"></select>
+        <label>Fasalka</label>
+        <select id="insp-fasal"></select>
+        <div class="row">
+          <div>
+            <label>Maadada 1aad</label>
+            <input type="text" id="insp-maadada1" placeholder="Tusaale: Xisaabta">
+          </div>
+          <div>
+            <label>Maadada 2aad</label>
+            <input type="text" id="insp-maadada2" placeholder="Tusaale: Naxwaha">
+          </div>
+        </div>
+        <div class="center" style="margin-top:14px;">
+          <button class="btn-primary" onclick="startInspection()">Bilow Taftiishka →</button>
+        </div>
+      </div>
+      <div id="insp-form-area"></div>
+      <div class="card">
+        <h3>🏆 Kala-soocidda Macallimiinta</h3>
+        <p class="muted">Waxay ku salaysan tahay boqolkiiba (%) qodobada la calaamadiyay ee dhammaan taftiishyada macalinka — kan ugu sarreeya ayaa ah macallinka ugu fiican taftiishyada.</p>
+        <div id="insp-ranking"></div>
+      </div>
+      <div class="card">
+        <h3>Taariikhda Taftiishyada</h3>
+        <div id="insp-history"></div>
+      </div>
+    </div>
+
+    <div id="tab-meetings" class="admin-tab hidden">
+      <div class="card">
+        <h2>📓 Buugga Shirarka</h2>
+        <p class="muted">Samee note cusub qor kasta ah shir — sida buug qoraal ah oo aad qodobyo lambar leh ku qorto.</p>
+        <div class="center" style="margin-top:10px;">
+          <button class="btn-primary" onclick="createMeetingNote()">+ Samee Note Cusub</button>
+        </div>
+      </div>
+      <div id="meeting-notes-list"></div>
     </div>
 
     <div class="card">
@@ -395,8 +446,25 @@ let CURRENT_DEPT = null; // 'iskuul' or 'quraan'
 let STUDENTS = {};   // id -> {name, phone1, phone2, fasal, section}
 let TEACHERS = {};   // id -> {name, pin}
 let SUBMISSIONS = {}; // teacherId -> batchKey -> {...}
+let INSPECTIONS = {}; // teacherId -> key -> {teacherName, date, subjects:[{maadada, items, notes}]}
+let MEETING_NOTES = {}; // noteId -> {title, date, lines:{lineId:{text, order}}}
 let currentTeacher = null; // {id, name}
 let currentBatch = null; // {fasal, section, maadada, key}
+let currentInspection = null; // {teacherId, teacherName, m1, m2}
+
+// Checklist-ka Taftiishka Maamulka: "buug" = waxaa lagu baarayaa buugta, "arday" = waxaa lagu ogaanayaa su'aal ardayda
+const INSPECTION_ITEMS = [
+  {id:'far_qurxinta', label:'Far qurxinta', source:'buug'},
+  {id:'dhagaysiga', label:'Dhagaysiga', source:'buug'},
+  {id:'taftiishka_goraalka', label:'Taftiishka goraalka cashirka', source:'buug'},
+  {id:'sharaxaada', label:'Sharaxaada', source:'buug'},
+  {id:'sixida_layliyada', label:'Sixida layliyada', source:'buug'},
+  {id:'yeeriska', label:'Yeeriska', source:'buug'},
+  {id:'taariikhda', label:'Taariikhda', source:'buug'},
+  {id:'sheekada_sharaxaad', label:'Sheekada sharaxaad', source:'buug'},
+  {id:'jaldiga_buugta', label:'Jaldiga buugta', source:'buug'},
+  {id:'dilka_ardayda', label:'Ardayda lagama dilin', source:'arday'}
+];
 
 function toast(msg){
   const t = document.getElementById('toast');
@@ -453,8 +521,10 @@ function backToDeptSelect(){
 // ---------- Firebase listeners ----------
 function attachFirebaseListeners(){
   db.child('students').on('value', snap=>{ STUDENTS = snap.val() || {}; populateFasalDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderStudentList(); });
-  db.child('teachers').on('value', snap=>{ TEACHERS = snap.val() || {}; populateTeacherDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList(); });
+  db.child('teachers').on('value', snap=>{ TEACHERS = snap.val() || {}; populateTeacherDropdown(); populateInspectTeacherDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList(); });
   db.child('submissions').on('value', snap=>{ SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
+  db.child('inspections').on('value', snap=>{ INSPECTIONS = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden')) renderInspectionHistory(); });
+  db.child('meetingNotes').on('value', snap=>{ MEETING_NOTES = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden')) renderMeetingNotes(); });
   db.child('config/adminPin').once('value', snap=>{ if(!snap.exists()) db.child('config/adminPin').set('1234'); });
 }
 
@@ -490,12 +560,19 @@ function teacherLogin(){
 // ---------- Fasal / Section dropdowns ----------
 function populateFasalDropdown(){
   const fasalSel = document.getElementById('sel-fasal');
-  if(!fasalSel) return;
   const fasals = [...new Set(Object.values(STUDENTS).map(s=>s.fasal).filter(Boolean))].sort();
-  const prev = fasalSel.value;
-  fasalSel.innerHTML = '<option value="">-- Dooro --</option>' + fasals.map(f=>`<option value="${f}">${f}</option>`).join('');
-  if(fasals.includes(prev)) fasalSel.value = prev;
-  populateSectionDropdown();
+  if(fasalSel){
+    const prev = fasalSel.value;
+    fasalSel.innerHTML = '<option value="">-- Dooro --</option>' + fasals.map(f=>`<option value="${f}">${f}</option>`).join('');
+    if(fasals.includes(prev)) fasalSel.value = prev;
+    populateSectionDropdown();
+  }
+  const inspFasalSel = document.getElementById('insp-fasal');
+  if(inspFasalSel){
+    const prevInsp = inspFasalSel.value;
+    inspFasalSel.innerHTML = '<option value="">-- Dooro Fasalka --</option>' + fasals.map(f=>`<option value="${f}">${f}</option>`).join('');
+    if(fasals.includes(prevInsp)) inspFasalSel.value = prevInsp;
+  }
   const maadadaList = document.getElementById('maadada-list');
   const maadooyin = new Set();
   Object.values(SUBMISSIONS).forEach(batches=>Object.values(batches).forEach(b=>{ if(b.maadada) maadooyin.add(b.maadada); }));
@@ -615,6 +692,8 @@ function switchAdminTab(tab){
   if(tab==='progress') renderProgress();
   if(tab==='students') renderStudentList();
   if(tab==='teachers') renderTeacherList();
+  if(tab==='inspect'){ populateInspectTeacherDropdown(); renderInspectionRanking(); renderInspectionHistory(); }
+  if(tab==='meetings'){ renderMeetingNotes(); }
 }
 
 // ---------- Dashboard: ranked flagged students ----------
@@ -834,26 +913,355 @@ function renderTeacherList(){
   const entries = Object.entries(TEACHERS);
   if(entries.length===0){ el.innerHTML = '<p class="muted">Weli macalin lama darin.</p>'; return; }
   el.innerHTML = entries.map(([id,t])=>`
-    <div class="student-row">
-      <div style="flex:1;">
-        <div class="student-name">${escapeHtml(t.name)}</div>
-        <div class="student-meta">PIN: ${escapeHtml(String(t.pin))}</div>
+    <div class="student-row" id="t-row-${id}" style="flex-direction:column;align-items:stretch;">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="flex:1;">
+          <div class="student-name">${escapeHtml(t.name)}</div>
+          <div class="student-meta">PIN: ${escapeHtml(String(t.pin))}${t.phone ? ' · 📱 '+escapeHtml(t.phone) : ''}</div>
+        </div>
+        <button class="btn-ghost btn-sm" onclick="toggleEditTeacher('${id}')">✏️ Wax ka beddel</button>
+        <button class="btn-danger btn-sm" onclick="deleteTeacher('${id}')">Tirtir</button>
       </div>
-      <button class="btn-danger btn-sm" onclick="deleteTeacher('${id}')">Tirtir</button>
+      <div id="t-edit-${id}" class="hidden" style="margin-top:10px;">
+        <div class="row">
+          <div>
+            <label>Magaca</label>
+            <input type="text" id="edit-t-name-${id}" value="${escapeHtml(t.name)}">
+          </div>
+          <div>
+            <label>PIN</label>
+            <input type="text" id="edit-t-pin-${id}" value="${escapeHtml(String(t.pin))}" maxlength="8">
+          </div>
+          <div>
+            <label>Telefoonka (WhatsApp)</label>
+            <input type="tel" id="edit-t-phone-${id}" value="${escapeHtml(t.phone || '')}">
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;">
+          <button class="btn-primary btn-sm" onclick="saveTeacherEdit('${id}')">💾 Kaydi</button>
+          <button class="btn-ghost btn-sm" onclick="toggleEditTeacher('${id}')">Ka noqo</button>
+        </div>
+      </div>
     </div>`).join('');
+}
+function toggleEditTeacher(id){
+  const el = document.getElementById('t-edit-'+id);
+  if(el) el.classList.toggle('hidden');
+}
+function saveTeacherEdit(id){
+  const name = document.getElementById('edit-t-name-'+id).value.trim();
+  const pin = document.getElementById('edit-t-pin-'+id).value.trim();
+  const phone = normalizePhone(document.getElementById('edit-t-phone-'+id).value);
+  if(!name || !pin){ toast('Fadlan buuxi magaca iyo PIN-ka.'); return; }
+  db.child('teachers/'+id).update({name, pin, phone}).then(()=>{
+    toast('Macalinka waa la cusboonaysiiyay.');
+  });
 }
 function addTeacher(){
   const name = document.getElementById('new-t-name').value.trim();
   const pin = document.getElementById('new-t-pin').value.trim();
+  const phone = normalizePhone(document.getElementById('new-t-phone').value);
   if(!name || !pin){ toast('Fadlan buuxi magaca iyo PIN-ka.'); return; }
-  db.child('teachers').push({name, pin}).then(()=>{
+  db.child('teachers').push({name, pin, phone}).then(()=>{
     toast('Macalin waa la daray.');
-    document.getElementById('new-t-name').value=''; document.getElementById('new-t-pin').value='';
+    document.getElementById('new-t-name').value=''; document.getElementById('new-t-pin').value=''; document.getElementById('new-t-phone').value='';
   });
 }
 function deleteTeacher(id){
   if(!confirm('Ma hubtaa inaad tirtirto macallinkan?')) return;
   db.child('teachers/'+id).remove().then(()=>toast('Waa la tirtiray.'));
+}
+
+// ---------- Admin Inspection (Taftiishka Maamulka) ----------
+function populateInspectTeacherDropdown(){
+  const sel = document.getElementById('insp-teacher');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">-- Dooro macalin --</option>' +
+    Object.entries(TEACHERS).map(([id,t])=>`<option value="${id}">${escapeHtml(t.name)}</option>`).join('');
+  if(TEACHERS[prev]) sel.value = prev;
+}
+function startInspection(){
+  const teacherId = document.getElementById('insp-teacher').value;
+  const fasal = document.getElementById('insp-fasal').value;
+  const m1 = document.getElementById('insp-maadada1').value.trim();
+  const m2 = document.getElementById('insp-maadada2').value.trim();
+  if(!teacherId){ toast('Fadlan dooro macallinka.'); return; }
+  if(!fasal){ toast('Fadlan dooro fasalka.'); return; }
+  if(!m1 || !m2){ toast('Fadlan geli labada maadooyin.'); return; }
+  currentInspection = {teacherId, teacherName: TEACHERS[teacherId].name, fasal, m1, m2};
+  const area = document.getElementById('insp-form-area');
+  area.innerHTML = [m1, m2].map((maadada, idx)=>`
+    <div class="card">
+      <h3>${escapeHtml(maadada)}</h3>
+      ${INSPECTION_ITEMS.map(it=>`
+        <div class="student-row">
+          <input type="checkbox" id="insp-${idx}-${it.id}">
+          <div style="flex:1;">
+            <div class="student-name">${escapeHtml(it.label)}</div>
+            <div class="student-meta">${it.source==='buug' ? '📓 Buugta' : '🗣️ Su\'aal Arday'}</div>
+          </div>
+        </div>`).join('')}
+      <label>Fiiro gaar ah</label>
+      <textarea id="insp-notes-${idx}" placeholder="Wixii faahfaahin dheeraad ah..."></textarea>
+    </div>`).join('') + `
+    <div class="center" style="margin:12px 0 20px;">
+      <button class="btn-primary" onclick="saveInspection()">💾 Kaydi Taftiishka</button>
+    </div>`;
+}
+function saveInspection(){
+  if(!currentInspection) return;
+  const {teacherId, teacherName, fasal, m1, m2} = currentInspection;
+  const subjects = [m1, m2].map((maadada, idx)=>{
+    const items = {};
+    INSPECTION_ITEMS.forEach(it=>{ items[it.id] = document.getElementById(`insp-${idx}-${it.id}`).checked; });
+    return {maadada, items, notes: (document.getElementById(`insp-notes-${idx}`).value || '').trim()};
+  });
+  const key = db.child('inspections/'+teacherId).push().key;
+  db.child('inspections/'+teacherId+'/'+key).set({teacherName, fasal, date: Date.now(), subjects}).then(()=>{
+    toast('Taftiishka waa la kaydiyay.');
+    document.getElementById('insp-form-area').innerHTML = '';
+    document.getElementById('insp-maadada1').value = '';
+    document.getElementById('insp-maadada2').value = '';
+    document.getElementById('insp-teacher').value = '';
+    document.getElementById('insp-fasal').value = '';
+    currentInspection = null;
+    renderInspectionRanking();
+  });
+}
+function buildTeacherInspectionMessage(teacherName, subjects){
+  let totalItems = 0, totalChecked = 0;
+  const blocks = (subjects || []).map(s=>{
+    const checked = INSPECTION_ITEMS.filter(it=>s.items && s.items[it.id]).map(it=>it.label);
+    const unchecked = INSPECTION_ITEMS.filter(it=>!(s.items && s.items[it.id])).map(it=>it.label);
+    totalItems += INSPECTION_ITEMS.length;
+    totalChecked += checked.length;
+    let block = `📘 *${s.maadada}*\n`;
+    if(checked.length){
+      block += `✅ Waxyaabaha aad ku fiican tahay:\n`;
+      block += checked.map(l=>`   • ${l}`).join('\n') + '\n';
+    }
+    if(unchecked.length){
+      block += `🌱 Waxyaabaha aan xoojin u baahan nahay:\n`;
+      block += unchecked.map(l=>`   • ${l}`).join('\n') + '\n';
+    }
+    if(s.notes) block += `📝 Fiiro gaar ah: ${s.notes}\n`;
+    return block;
+  }).join('\n');
+  const pct = totalItems ? Math.round(totalChecked/totalItems*100) : 0;
+  return `Assalaamu Calaykum Warahmatullaahi Wabarakaatuh,\n\n`+
+    `Macallin ${teacherName}, mahadsanid dadaalka joogtada ah ee aad u geli fasalka. Waxaan kuu soo dirayaa natiijadii taftiishka maamulka ee ugu dambeeyay, oo ah wax lagu isla horumarinayo, ma aha wax lagugu dhaliilayo:\n\n${blocks}\n`+
+    `📊 Guud ahaan: ${totalChecked}/${totalItems} qodob (${pct}%) ayaa la gaadhay — mahadsanid wixii aad horeba u fulisay, waxaanan ku rajaynaynaa inaad sii xoojiso qodobbada kale.\n\n`+
+    `Mahadsanid wanaaggaaga iyo dadaalkaaga, Alle ha ku barakeeyo. Wixii su'aal ama faahfaahin dheeraad ah, nala soo xiriir.\n— Maamulka AL-XIKMA SCHOOL`;
+}
+function renderInspectionRanking(){
+  const el = document.getElementById('insp-ranking');
+  if(!el) return;
+  const stats = {}; // teacherId -> {name, checked, total, count, byFasal:{fasal:{checked,total}}}
+  Object.entries(INSPECTIONS).forEach(([teacherId, batches])=>{
+    Object.values(batches || {}).forEach(insp=>{
+      if(!stats[teacherId]) stats[teacherId] = {name: insp.teacherName, checked:0, total:0, count:0, byFasal:{}};
+      stats[teacherId].count++;
+      const fasal = insp.fasal || '';
+      if(fasal && !stats[teacherId].byFasal[fasal]) stats[teacherId].byFasal[fasal] = {checked:0, total:0};
+      (insp.subjects || []).forEach(s=>{
+        INSPECTION_ITEMS.forEach(it=>{
+          stats[teacherId].total++;
+          const ok = !!(s.items && s.items[it.id]);
+          if(ok) stats[teacherId].checked++;
+          if(fasal){
+            stats[teacherId].byFasal[fasal].total++;
+            if(ok) stats[teacherId].byFasal[fasal].checked++;
+          }
+        });
+      });
+    });
+  });
+  const list = Object.values(stats)
+    .map(s=>{
+      const fasalPcts = Object.entries(s.byFasal).map(([fasal,f])=>({fasal, pct: f.total ? Math.round(f.checked/f.total*100) : 0}));
+      fasalPcts.sort((a,b)=> b.pct - a.pct);
+      return {...s, pct: s.total ? Math.round(s.checked/s.total*100) : 0,
+        best: fasalPcts[0], worst: fasalPcts.length>1 ? fasalPcts[fasalPcts.length-1] : null};
+    })
+    .sort((a,b)=> b.pct - a.pct);
+  if(list.length===0){ el.innerHTML = '<p class="muted">Weli lama taftiishin macalin.</p>'; return; }
+  const medals = ['🥇','🥈','🥉'];
+  el.innerHTML = list.map((s,idx)=>`
+    <div class="student-row">
+      <div style="flex:1;">
+        <div class="student-name">${medals[idx] || ('#'+(idx+1))} ${escapeHtml(s.name)}</div>
+        <div class="student-meta">${s.count} taftiish · ${s.checked}/${s.total} qodob</div>
+        ${s.best ? `<div class="student-meta">🏆 Ugu fiican: ${escapeHtml(s.best.fasal)} (${s.best.pct}%)${s.worst ? ` · 🌱 Xoojin u baahan: ${escapeHtml(s.worst.fasal)} (${s.worst.pct}%)` : ''}</div>` : ''}
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.05rem;">${s.pct}%</div>
+    </div>`).join('');
+}
+function renderInspectionHistory(){
+  const el = document.getElementById('insp-history');
+  if(!el) return;
+  const entries = [];
+  Object.entries(INSPECTIONS).forEach(([teacherId, batches])=>{
+    Object.entries(batches || {}).forEach(([key, insp])=>{ entries.push({teacherId, key, ...insp}); });
+  });
+  entries.sort((a,b)=> b.date - a.date);
+  if(entries.length===0){ el.innerHTML = '<p class="muted">Weli lama taftiishin macalin.</p>'; return; }
+  el.innerHTML = entries.map(e=>{
+    const uid = `${e.teacherId}_${e.key}`;
+    let totalItems = 0, checkedCount = 0;
+    (e.subjects || []).forEach(s=>{
+      INSPECTION_ITEMS.forEach(it=>{ totalItems++; if(s.items && s.items[it.id]) checkedCount++; });
+    });
+    const subjectsHtml = (e.subjects || []).map(s=>{
+      const checked = INSPECTION_ITEMS.filter(it=>s.items && s.items[it.id]);
+      const unchecked = INSPECTION_ITEMS.filter(it=>!(s.items && s.items[it.id]));
+      return `<div style="margin-top:8px;">
+        <b>${escapeHtml(s.maadada)}</b>
+        <ul class="detail-list">
+          ${checked.map(it=>`<li>✅ ${escapeHtml(it.label)}</li>`).join('')}
+          ${unchecked.map(it=>`<li>⬜ ${escapeHtml(it.label)}</li>`).join('')}
+        </ul>
+        ${s.notes ? `<p class="muted" style="margin:4px 0;">📝 ${escapeHtml(s.notes)}</p>` : ''}
+      </div>`;
+    }).join('');
+    const teacherPhone = (TEACHERS[e.teacherId] && TEACHERS[e.teacherId].phone) ? String(TEACHERS[e.teacherId].phone).replace(/[^0-9+]/g,'') : '';
+    const waMsg = encodeURIComponent(buildTeacherInspectionMessage(e.teacherName, e.subjects || []));
+    const waBtn = teacherPhone
+      ? `<a href="https://wa.me/${teacherPhone}?text=${waMsg}" target="_blank"><button class="btn-whatsapp btn-sm">💬 U dir Macalinka</button></a>`
+      : `<span class="muted">Telefoonka macallinka lama gelin — ku dar tabka "Macallimiinta"</span>`;
+    return `<div class="flagged-item">
+      <div class="flagged-head" style="cursor:pointer;" onclick="toggleInspectionEntry('${uid}')">
+        <div>
+          <span class="flagged-name">${escapeHtml(e.teacherName)}</span>
+          ${e.fasal ? `<span class="pill">${escapeHtml(e.fasal)}</span>` : ''}
+          <span class="pill">${checkedCount}/${totalItems}</span>
+        </div>
+        <span class="muted">${new Date(e.date).toLocaleString('so')} ▾</span>
+      </div>
+      <div id="insp-entry-${uid}" class="hidden" style="margin-top:8px;">
+        ${subjectsHtml}
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+          ${waBtn}
+          <button class="btn-danger btn-sm" onclick="event.stopPropagation(); deleteInspection('${e.teacherId}','${e.key}')">🗑️ Tirtir</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleInspectionEntry(uid){
+  const el = document.getElementById('insp-entry-'+uid);
+  if(el) el.classList.toggle('hidden');
+}
+function deleteInspection(teacherId, key){
+  if(!confirm('Ma hubtaa inaad tirtirto taftiishkan?')) return;
+  db.child('inspections/'+teacherId+'/'+key).remove().then(()=>toast('Waa la tirtiray.'));
+}
+
+// ---------- Meetings (Buugga Shirarka) ----------
+function createMeetingNote(){
+  const key = db.child('meetingNotes').push().key;
+  const lines = {};
+  for(let i=0;i<5;i++){
+    const lineKey = db.child('meetingNotes/'+key+'/lines').push().key;
+    lines[lineKey] = {text:'', order:i};
+  }
+  db.child('meetingNotes/'+key).set({title:'', date: Date.now(), lines}).then(()=>{
+    toast('Note cusub waa la sameeyay.');
+  });
+}
+function renderMeetingNotes(){
+  const el = document.getElementById('meeting-notes-list');
+  if(!el) return;
+  const entries = Object.entries(MEETING_NOTES).sort((a,b)=> (b[1].date||0) - (a[1].date||0));
+  if(entries.length===0){ el.innerHTML = '<p class="muted">Weli note lama samayn.</p>'; return; }
+  el.innerHTML = entries.map(([id, note])=>{
+    const lines = Object.entries(note.lines || {}).sort((a,b)=> (a[1].order||0) - (b[1].order||0));
+    const comments = Object.entries(note.comments || {}).sort((a,b)=> (a[1].date||0) - (b[1].date||0));
+    const dateStr = note.date ? new Date(note.date).toLocaleString('so') : '';
+    return `
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="toggleMeetingNote('${id}')">
+        <span id="note-arrow-${id}" style="transition:transform .15s;">▸</span>
+        <span style="flex:1;font-weight:700;font-size:1.1rem;">${escapeHtml(note.title || '(Cinwaan la\'aan)')}</span>
+        <button class="btn-danger btn-sm" onclick="event.stopPropagation(); deleteMeetingNote('${id}')">🗑️</button>
+      </div>
+      <div id="note-body-${id}" class="hidden" style="margin-top:14px;">
+        <div class="row" style="align-items:center;">
+          <input type="text" value="${escapeHtml(note.title||'')}" placeholder="Cinwaanka note-ka, tusaale: Shirka Macallimiinta"
+            style="flex:1;font-weight:700;border:1px solid #ddd7c4;border-radius:8px;padding:7px 10px;"
+            onchange="updateNoteTitle('${id}', this.value)" onclick="event.stopPropagation()">
+        </div>
+        ${dateStr ? `<div class="muted" style="margin-top:6px;font-size:.85rem;">🗓️ La qoray: ${dateStr}</div>` : ''}
+        <ol style="margin-top:14px;padding-right:22px;">
+          ${lines.map(([lineId, line])=>`
+          <li style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+            <input type="text" value="${escapeHtml(line.text||'')}" placeholder="Qodob..."
+              style="flex:1;border:1px solid #ddd7c4;border-radius:8px;padding:7px 10px;"
+              onchange="updateNoteLine('${id}','${lineId}', this.value)">
+            <button class="btn-ghost btn-sm" onclick="deleteNoteLine('${id}','${lineId}')">✕</button>
+          </li>`).join('')}
+        </ol>
+        <button class="btn-ghost btn-sm" onclick="addNoteLine('${id}')">+ Ku dar qodob</button>
+
+        <div style="margin-top:20px;padding-top:14px;border-top:1px dashed #ddd7c4;">
+          <h3 style="margin:0 0 8px;">💬 Fikirka Macallimiinta</h3>
+          <p class="muted" style="margin:0 0 10px;">Halkan waxaa ku qori kara macallimiintu faalladooda iyo fikradahooda ku saabsan qodobada shirkan.</p>
+          ${comments.length ? comments.map(([cId,c])=>`
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px dashed #ddd7c4;">
+            <div style="flex:1;">
+              <div>${escapeHtml(c.text||'')}</div>
+              <div class="muted" style="font-size:.8rem;">${c.date ? new Date(c.date).toLocaleString('so') : ''}</div>
+            </div>
+            <button class="btn-danger btn-sm" onclick="deleteNoteComment('${id}','${cId}')">🗑️</button>
+          </div>`).join('') : '<p class="muted">Weli faallo lama darin.</p>'}
+          <div class="row" style="margin-top:10px;">
+            <input type="text" id="new-comment-${id}" placeholder="Qor faalladaada/fikradaada...">
+            <button class="btn-primary btn-sm" onclick="addNoteComment('${id}')">+ Ku dar Faallo</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleMeetingNote(id){
+  const body = document.getElementById('note-body-'+id);
+  const arrow = document.getElementById('note-arrow-'+id);
+  if(!body) return;
+  const nowHidden = body.classList.toggle('hidden');
+  if(arrow) arrow.style.transform = nowHidden ? 'rotate(0deg)' : 'rotate(90deg)';
+}
+function updateNoteTitle(id, title){
+  db.child('meetingNotes/'+id+'/title').set(title.trim());
+}
+function addNoteLine(id){
+  const note = MEETING_NOTES[id] || {};
+  const order = Object.keys(note.lines || {}).length;
+  const lineKey = db.child('meetingNotes/'+id+'/lines').push().key;
+  db.child('meetingNotes/'+id+'/lines/'+lineKey).set({text:'', order});
+}
+function updateNoteLine(id, lineId, text){
+  db.child('meetingNotes/'+id+'/lines/'+lineId+'/text').set(text.trim());
+}
+function deleteNoteLine(id, lineId){
+
+  db.child('meetingNotes/'+id+'/lines/'+lineId).remove();
+}
+function deleteMeetingNote(id){
+  if(!confirm('Ma hubtaa inaad tirtirto note-kan oo dhan?')) return;
+  db.child('meetingNotes/'+id).remove().then(()=>toast('Note-ka waa la tirtiray.'));
+}
+function addNoteComment(id){
+  const input = document.getElementById('new-comment-'+id);
+  const text = input.value.trim();
+  if(!text){ toast('Fadlan qor faalladaada.'); return; }
+  db.child('meetingNotes/'+id+'/comments').push({text, date: Date.now()}).then(()=>{
+    input.value = '';
+    toast('Faalladaada waa la daray.');
+  });
+}
+function deleteNoteComment(id, commentId){
+  if(!confirm('Ma hubtaa inaad tirtirto faalladan?')) return;
+  db.child('meetingNotes/'+id+'/comments/'+commentId).remove();
 }
 
 // ---------- Utils ----------
