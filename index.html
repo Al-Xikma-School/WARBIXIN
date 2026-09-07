@@ -133,6 +133,23 @@
   th{text-align:right;font-family:'Kalam',cursive;font-size:0.95rem;border-bottom:2px solid var(--ink);padding:8px 6px;}
   td{padding:9px 6px;border-bottom:1px solid #ddd7c4;vertical-align:top;}
   .student-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #ddd7c4;}
+  .rating-item{padding:12px 0;border-bottom:1px solid #ddd7c4;}
+  .rating-item-label{font-weight:700;color:var(--ink);margin-bottom:2px;}
+  .rating-item-source{font-size:0.78rem;color:#7a7561;margin-bottom:8px;}
+  .rating-btns{display:flex;gap:8px;flex-wrap:wrap;}
+  .rating-btn{
+    flex:1;min-width:110px;text-align:center;padding:8px 6px;border-radius:8px;cursor:pointer;
+    border:2px solid #ddd7c4;background:#fff;font-size:0.85rem;font-weight:600;color:#6b6552;
+    transition:all .12s ease;user-select:none;
+  }
+  .rating-btn:hover{border-color:#bdb490;}
+  .rating-btn.rb-good.active{background:#e4ede0;border-color:#3c7a4d;color:#2e5e3a;}
+  .rating-btn.rb-average.active{background:#fff3d6;border-color:#c99a2e;color:#8a6c1a;}
+  .rating-btn.rb-weak.active{background:#f6dede;border-color:#b5453f;color:#8a2f2f;}
+  .rating-progress{
+    height:8px;border-radius:6px;background:#ece6d2;overflow:hidden;margin:10px 0 4px;
+  }
+  .rating-progress-fill{height:100%;background:var(--chalk-green,#3c7a4d);transition:width .2s ease;}
   .student-row:last-child{border-bottom:none;}
   .student-row input[type=checkbox]{width:20px;height:20px;margin-top:4px;}
   .student-name{font-weight:600;}
@@ -265,6 +282,7 @@
       <div class="tab" data-tab="teachers" onclick="switchAdminTab('teachers')">👩‍🏫 Macallimiinta</div>
       <div class="tab" data-tab="inspect" onclick="switchAdminTab('inspect')">🔍 Taftiishka Maamulka</div>
       <div class="tab" data-tab="meetings" onclick="switchAdminTab('meetings')">🗓️ Shirarka</div>
+      <div class="tab" data-tab="settings" onclick="switchAdminTab('settings')">⚙️ Settings</div>
     </div>
 
     <div id="tab-dash" class="admin-tab">
@@ -441,11 +459,27 @@
       <div id="meeting-notes-list"></div>
     </div>
 
-    <div class="card">
-      <h3>Beddel PIN-ka Maamulka</h3>
-      <div class="row">
-        <input type="password" id="new-admin-pin" placeholder="PIN cusub">
-        <button class="btn-ghost btn-sm" onclick="changeAdminPin()">Beddel</button>
+    <div id="tab-settings" class="admin-tab hidden">
+      <div class="card">
+        <h3>🔑 Beddel PIN-ka Maamulka</h3>
+        <div class="row">
+          <input type="password" id="new-admin-pin" placeholder="PIN cusub">
+          <button class="btn-ghost btn-sm" onclick="changeAdminPin()">Beddel</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📋 Qodobada Taftiishka Macallimiinta</h3>
+        <p class="muted">Halkan waxaad ka maamuli kartaa qodobada macallimiinta laga taftiishayo (sida Far qurxinta, Yeeriska, Sharaxaada, iwm) — ku dar qodob cusub, wax ka beddel mid jira, ama tirtir mid aan loo baahnayn.</p>
+        <div id="inspection-items-settings"></div>
+        <div class="row" style="margin-top:14px;">
+          <input type="text" id="new-item-label" placeholder="Cinwaanka qodobka cusub...">
+          <select id="new-item-source">
+            <option value="buug">📓 Buugta</option>
+            <option value="arday">🗣️ Su'aal Arday</option>
+          </select>
+          <button class="btn-primary btn-sm" onclick="addInspectionItem()">+ Ku dar Qodob</button>
+        </div>
       </div>
     </div>
   </div>
@@ -478,18 +512,21 @@ let currentBatch = null; // {fasal, section, maadada, key}
 let currentInspection = null; // {teacherId, teacherName, m1, m2}
 
 // Checklist-ka Taftiishka Maamulka: "buug" = waxaa lagu baarayaa buugta, "arday" = waxaa lagu ogaanayaa su'aal ardayda
-const INSPECTION_ITEMS = [
-  {id:'far_qurxinta', label:'Far qurxinta', source:'buug'},
-  {id:'dhagaysiga', label:'Dhagaysiga', source:'buug'},
-  {id:'taftiishka_goraalka', label:'Taftiishka goraalka cashirka', source:'buug'},
-  {id:'sharaxaada', label:'Sharaxaada', source:'buug'},
-  {id:'sixida_layliyada', label:'Sixida layliyada', source:'buug'},
-  {id:'yeeriska', label:'Yeeriska', source:'buug'},
-  {id:'taariikhda', label:'Taariikhda', source:'buug'},
-  {id:'sheekada_sharaxaad', label:'Sheekada sharaxaad', source:'buug'},
-  {id:'jaldiga_buugta', label:'Jaldiga buugta', source:'buug'},
-  {id:'dilka_ardayda', label:'Ardayda lagama dilin', source:'arday'}
+const RATING_WEIGHTS = {good:1, average:0.5, weak:0};
+const RATING_LABELS = {good:'😊 Fiican', average:'😐 Dhexdhexaad', weak:'🌱 U baahan Xoojin'};
+const DEFAULT_INSPECTION_ITEMS = [
+  {label:'Far qurxinta', source:'buug'},
+  {label:'Dhagaysiga', source:'buug'},
+  {label:'Taftiishka goraalka cashirka', source:'buug'},
+  {label:'Sharaxaada', source:'buug'},
+  {label:'Sixida layliyada', source:'buug'},
+  {label:'Yeeriska', source:'buug'},
+  {label:'Taariikhda', source:'buug'},
+  {label:'Sheekada sharaxaad', source:'buug'},
+  {label:'Jaldiga buugta', source:'buug'},
+  {label:'Ardayda lagama dilin', source:'arday'}
 ];
+let INSPECTION_ITEMS = []; // [{id, label, source, order}] loaded from Firebase
 
 function toast(msg){
   const t = document.getElementById('toast');
@@ -551,6 +588,23 @@ function attachFirebaseListeners(){
   db.child('inspections').on('value', snap=>{ INSPECTIONS = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden')) renderInspectionHistory(); });
   db.child('meetingNotes').on('value', snap=>{ MEETING_NOTES = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden')) renderMeetingNotes(); });
   db.child('config/adminPin').once('value', snap=>{ if(!snap.exists()) db.child('config/adminPin').set('1234'); });
+  db.child('inspectionItems').once('value', snap=>{
+    if(!snap.exists()){
+      const seed = {};
+      DEFAULT_INSPECTION_ITEMS.forEach((it,order)=>{
+        const key = db.child('inspectionItems').push().key;
+        seed[key] = {label: it.label, source: it.source, order};
+      });
+      db.child('inspectionItems').set(seed);
+    }
+  });
+  db.child('inspectionItems').on('value', snap=>{
+    const val = snap.val() || {};
+    INSPECTION_ITEMS = Object.entries(val)
+      .map(([id,it])=>({id, label:it.label, source:it.source, order: it.order||0}))
+      .sort((a,b)=> a.order - b.order);
+    if(!document.getElementById('view-admin').classList.contains('hidden')) renderInspectionItemsSettings();
+  });
 }
 
 function refreshAdminIfVisible(){
@@ -720,6 +774,7 @@ function switchAdminTab(tab){
   if(tab==='teachers') renderTeacherList();
   if(tab==='inspect'){ populateInspectTeacherDropdown(); renderInspectionRanking(); renderInspectionHistory(); }
   if(tab==='meetings'){ renderMeetingNotes(); }
+  if(tab==='settings'){ renderInspectionItemsSettings(); }
 }
 
 // ---------- Dashboard: ranked flagged students ----------
@@ -1092,27 +1147,54 @@ function startInspection(){
   area.innerHTML = maadooyinka.map((maadada, idx)=>`
     <div class="card">
       <h3>${escapeHtml(maadada)}</h3>
+      <div class="rating-progress"><div class="rating-progress-fill" id="rating-progress-${idx}" style="width:0%"></div></div>
+      <p class="muted" id="rating-progress-label-${idx}" style="margin:0 0 10px;font-size:0.82rem;">0/${INSPECTION_ITEMS.length} qodob la qiimeeyay</p>
       ${INSPECTION_ITEMS.map(it=>`
-        <div class="student-row">
-          <input type="checkbox" id="insp-${idx}-${it.id}">
-          <div style="flex:1;">
-            <div class="student-name">${escapeHtml(it.label)}</div>
-            <div class="student-meta">${it.source==='buug' ? '📓 Buugta' : '🗣️ Su\'aal Arday'}</div>
+        <div class="rating-item">
+          <div class="rating-item-label">${escapeHtml(it.label)}</div>
+          <div class="rating-item-source">${it.source==='buug' ? '📓 Buugta' : '🗣️ Su\'aal Arday'}</div>
+          <input type="hidden" id="insp-${idx}-${it.id}" value="">
+          <div class="rating-btns">
+            <div class="rating-btn rb-good" id="btn-${idx}-${it.id}-good" onclick="setRating(${idx},'${it.id}','good')">😊 Fiican</div>
+            <div class="rating-btn rb-average" id="btn-${idx}-${it.id}-average" onclick="setRating(${idx},'${it.id}','average')">😐 Dhexdhexaad</div>
+            <div class="rating-btn rb-weak" id="btn-${idx}-${it.id}-weak" onclick="setRating(${idx},'${it.id}','weak')">🌱 U baahan Xoojin</div>
           </div>
         </div>`).join('')}
-      <label>Fiiro gaar ah</label>
+      <label style="margin-top:14px;">Fiiro gaar ah</label>
       <textarea id="insp-notes-${idx}" placeholder="Wixii faahfaahin dheeraad ah..."></textarea>
     </div>`).join('') + `
     <div class="center" style="margin:12px 0 20px;">
       <button class="btn-primary" onclick="saveInspection()">💾 Kaydi Taftiishka</button>
     </div>`;
 }
+function setRating(idx, itemId, value){
+  document.getElementById(`insp-${idx}-${itemId}`).value = value;
+  ['good','average','weak'].forEach(v=>{
+    document.getElementById(`btn-${idx}-${itemId}-${v}`).classList.toggle('active', v===value);
+  });
+  updateRatingProgress(idx);
+}
+function updateRatingProgress(idx){
+  const rated = INSPECTION_ITEMS.filter(it=> document.getElementById(`insp-${idx}-${it.id}`).value).length;
+  const total = INSPECTION_ITEMS.length;
+  const fill = document.getElementById(`rating-progress-${idx}`);
+  const label = document.getElementById(`rating-progress-label-${idx}`);
+  if(fill) fill.style.width = Math.round(rated/total*100) + '%';
+  if(label) label.textContent = `${rated}/${total} qodob la qiimeeyay`;
+}
 function saveInspection(){
   if(!currentInspection) return;
   const {teacherId, teacherName, fasal, maadooyinka} = currentInspection;
+  for(let idx=0; idx<maadooyinka.length; idx++){
+    const incomplete = INSPECTION_ITEMS.some(it=> !document.getElementById(`insp-${idx}-${it.id}`).value);
+    if(incomplete){
+      toast(`Fadlan qiimee dhammaan qodobada "${maadooyinka[idx]}" ka hor intaadan kaydin.`);
+      return;
+    }
+  }
   const subjects = maadooyinka.map((maadada, idx)=>{
     const items = {};
-    INSPECTION_ITEMS.forEach(it=>{ items[it.id] = document.getElementById(`insp-${idx}-${it.id}`).checked; });
+    INSPECTION_ITEMS.forEach(it=>{ items[it.id] = document.getElementById(`insp-${idx}-${it.id}`).value; });
     return {maadada, items, notes: (document.getElementById(`insp-notes-${idx}`).value || '').trim()};
   });
   const key = db.child('inspections/'+teacherId).push().key;
@@ -1129,48 +1211,55 @@ function saveInspection(){
   });
 }
 function buildTeacherInspectionMessage(teacherName, subjects){
-  let totalItems = 0, totalChecked = 0;
+  let totalItems = 0, totalScore = 0;
   const blocks = (subjects || []).map(s=>{
-    const checked = INSPECTION_ITEMS.filter(it=>s.items && s.items[it.id]).map(it=>it.label);
-    const unchecked = INSPECTION_ITEMS.filter(it=>!(s.items && s.items[it.id])).map(it=>it.label);
-    totalItems += INSPECTION_ITEMS.length;
-    totalChecked += checked.length;
+    const good = INSPECTION_ITEMS.filter(it=>s.items && s.items[it.id]==='good').map(it=>it.label);
+    const average = INSPECTION_ITEMS.filter(it=>s.items && s.items[it.id]==='average').map(it=>it.label);
+    const weak = INSPECTION_ITEMS.filter(it=>s.items && s.items[it.id]==='weak').map(it=>it.label);
+    INSPECTION_ITEMS.forEach(it=>{
+      totalItems++;
+      totalScore += RATING_WEIGHTS[s.items && s.items[it.id]] || 0;
+    });
     let block = `📘 *${s.maadada}*\n`;
-    if(checked.length){
+    if(good.length){
       block += `✅ Waxyaabaha aad ku fiican tahay:\n`;
-      block += checked.map(l=>`   • ${l}`).join('\n') + '\n';
+      block += good.map(l=>`   • ${l}`).join('\n') + '\n';
     }
-    if(unchecked.length){
+    if(average.length){
+      block += `🌗 Waxyaabaha dhexdhexaadka ah:\n`;
+      block += average.map(l=>`   • ${l}`).join('\n') + '\n';
+    }
+    if(weak.length){
       block += `🌱 Waxyaabaha aan xoojin u baahan nahay:\n`;
-      block += unchecked.map(l=>`   • ${l}`).join('\n') + '\n';
+      block += weak.map(l=>`   • ${l}`).join('\n') + '\n';
     }
     if(s.notes) block += `📝 Fiiro gaar ah: ${s.notes}\n`;
     return block;
   }).join('\n');
-  const pct = totalItems ? Math.round(totalChecked/totalItems*100) : 0;
+  const pct = totalItems ? Math.round(totalScore/totalItems*100) : 0;
   return `Assalaamu Calaykum Warahmatullaahi Wabarakaatuh,\n\n`+
     `Macallin ${teacherName}, mahadsanid dadaalka joogtada ah ee aad u geli fasalka. Waxaan kuu soo dirayaa natiijadii taftiishka maamulka ee ugu dambeeyay, oo ah wax lagu isla horumarinayo, ma aha wax lagugu dhaliilayo:\n\n${blocks}\n`+
-    `📊 Guud ahaan: ${totalChecked}/${totalItems} qodob (${pct}%) ayaa la gaadhay — mahadsanid wixii aad horeba u fulisay, waxaanan ku rajaynaynaa inaad sii xoojiso qodobbada kale.\n\n`+
+    `📊 Guud ahaan: ${pct}% ayaa la gaadhay — mahadsanid wixii aad horeba u fulisay, waxaanan ku rajaynaynaa inaad sii xoojiso qodobbada kale.\n\n`+
     `Mahadsanid wanaaggaaga iyo dadaalkaaga, Alle ha ku barakeeyo. Wixii su'aal ama faahfaahin dheeraad ah, nala soo xiriir.\n— Maamulka AL-XIKMA SCHOOL`;
 }
 function renderInspectionRanking(){
   const el = document.getElementById('insp-ranking');
   if(!el) return;
-  const stats = {}; // teacherId -> {name, checked, total, count, byFasal:{fasal:{checked,total}}}
+  const stats = {}; // teacherId -> {name, score, total, count, byFasal:{fasal:{score,total}}}
   Object.entries(INSPECTIONS).forEach(([teacherId, batches])=>{
     Object.values(batches || {}).forEach(insp=>{
-      if(!stats[teacherId]) stats[teacherId] = {name: insp.teacherName, checked:0, total:0, count:0, byFasal:{}};
+      if(!stats[teacherId]) stats[teacherId] = {name: insp.teacherName, score:0, total:0, count:0, byFasal:{}};
       stats[teacherId].count++;
       const fasal = insp.fasal || '';
-      if(fasal && !stats[teacherId].byFasal[fasal]) stats[teacherId].byFasal[fasal] = {checked:0, total:0};
+      if(fasal && !stats[teacherId].byFasal[fasal]) stats[teacherId].byFasal[fasal] = {score:0, total:0};
       (insp.subjects || []).forEach(s=>{
         INSPECTION_ITEMS.forEach(it=>{
           stats[teacherId].total++;
-          const ok = !!(s.items && s.items[it.id]);
-          if(ok) stats[teacherId].checked++;
+          const w = RATING_WEIGHTS[s.items && s.items[it.id]] || 0;
+          stats[teacherId].score += w;
           if(fasal){
             stats[teacherId].byFasal[fasal].total++;
-            if(ok) stats[teacherId].byFasal[fasal].checked++;
+            stats[teacherId].byFasal[fasal].score += w;
           }
         });
       });
@@ -1178,9 +1267,9 @@ function renderInspectionRanking(){
   });
   const list = Object.values(stats)
     .map(s=>{
-      const fasalPcts = Object.entries(s.byFasal).map(([fasal,f])=>({fasal, pct: f.total ? Math.round(f.checked/f.total*100) : 0}));
+      const fasalPcts = Object.entries(s.byFasal).map(([fasal,f])=>({fasal, pct: f.total ? Math.round(f.score/f.total*100) : 0}));
       fasalPcts.sort((a,b)=> b.pct - a.pct);
-      return {...s, pct: s.total ? Math.round(s.checked/s.total*100) : 0,
+      return {...s, pct: s.total ? Math.round(s.score/s.total*100) : 0,
         best: fasalPcts[0], worst: fasalPcts.length>1 ? fasalPcts[fasalPcts.length-1] : null};
     })
     .sort((a,b)=> b.pct - a.pct);
@@ -1190,7 +1279,7 @@ function renderInspectionRanking(){
     <div class="student-row">
       <div style="flex:1;">
         <div class="student-name">${medals[idx] || ('#'+(idx+1))} ${escapeHtml(s.name)}</div>
-        <div class="student-meta">${s.count} taftiish · ${s.checked}/${s.total} qodob</div>
+        <div class="student-meta">${s.count} taftiish · ${Math.round(s.score*10)/10}/${s.total} qodob (culayska qiimaha)</div>
         ${s.best ? `<div class="student-meta">🏆 Ugu fiican: ${escapeHtml(s.best.fasal)} (${s.best.pct}%)${s.worst ? ` · 🌱 Xoojin u baahan: ${escapeHtml(s.worst.fasal)} (${s.worst.pct}%)` : ''}</div>` : ''}
       </div>
       <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.05rem;">${s.pct}%</div>
@@ -1207,18 +1296,19 @@ function renderInspectionHistory(){
   if(entries.length===0){ el.innerHTML = '<p class="muted">Weli lama taftiishin macalin.</p>'; return; }
   el.innerHTML = entries.map(e=>{
     const uid = `${e.teacherId}_${e.key}`;
-    let totalItems = 0, checkedCount = 0;
+    let totalItems = 0, totalScore = 0;
     (e.subjects || []).forEach(s=>{
-      INSPECTION_ITEMS.forEach(it=>{ totalItems++; if(s.items && s.items[it.id]) checkedCount++; });
+      INSPECTION_ITEMS.forEach(it=>{ totalItems++; totalScore += RATING_WEIGHTS[s.items && s.items[it.id]] || 0; });
     });
+    const pct = totalItems ? Math.round(totalScore/totalItems*100) : 0;
     const subjectsHtml = (e.subjects || []).map(s=>{
-      const checked = INSPECTION_ITEMS.filter(it=>s.items && s.items[it.id]);
-      const unchecked = INSPECTION_ITEMS.filter(it=>!(s.items && s.items[it.id]));
       return `<div style="margin-top:8px;">
         <b>${escapeHtml(s.maadada)}</b>
         <ul class="detail-list">
-          ${checked.map(it=>`<li>✅ ${escapeHtml(it.label)}</li>`).join('')}
-          ${unchecked.map(it=>`<li>⬜ ${escapeHtml(it.label)}</li>`).join('')}
+          ${INSPECTION_ITEMS.map(it=>{
+            const rating = (s.items && s.items[it.id]) || '';
+            return `<li>${RATING_LABELS[rating] || '—'} ${escapeHtml(it.label)}</li>`;
+          }).join('')}
         </ul>
         ${s.notes ? `<p class="muted" style="margin:4px 0;">📝 ${escapeHtml(s.notes)}</p>` : ''}
       </div>`;
@@ -1233,7 +1323,7 @@ function renderInspectionHistory(){
         <div>
           <span class="flagged-name">${escapeHtml(e.teacherName)}</span>
           ${e.fasal ? `<span class="pill">${escapeHtml(e.fasal)}</span>` : ''}
-          <span class="pill">${checkedCount}/${totalItems}</span>
+          <span class="pill">${pct}%</span>
         </div>
         <span class="muted">${new Date(e.date).toLocaleString('so')} ▾</span>
       </div>
@@ -1361,6 +1451,42 @@ function addNoteComment(id){
 function deleteNoteComment(id, commentId){
   if(!confirm('Ma hubtaa inaad tirtirto faalladan?')) return;
   db.child('meetingNotes/'+id+'/comments/'+commentId).remove();
+}
+
+// ---------- Settings: Inspection Items ----------
+function renderInspectionItemsSettings(){
+  const el = document.getElementById('inspection-items-settings');
+  if(!el) return;
+  if(INSPECTION_ITEMS.length===0){ el.innerHTML = '<p class="muted">Weli qodob lama darin.</p>'; return; }
+  el.innerHTML = INSPECTION_ITEMS.map(it=>`
+    <div class="student-row">
+      <input type="text" value="${escapeHtml(it.label)}" style="flex:1;border:1px solid #ddd7c4;border-radius:8px;padding:7px 10px;"
+        onchange="updateInspectionItem('${it.id}','label', this.value)">
+      <select onchange="updateInspectionItem('${it.id}','source', this.value)">
+        <option value="buug" ${it.source==='buug' ? 'selected' : ''}>📓 Buugta</option>
+        <option value="arday" ${it.source==='arday' ? 'selected' : ''}>🗣️ Su'aal Arday</option>
+      </select>
+      <button class="btn-danger btn-sm" onclick="deleteInspectionItem('${it.id}')">🗑️</button>
+    </div>`).join('');
+}
+function addInspectionItem(){
+  const labelInp = document.getElementById('new-item-label');
+  const sourceSel = document.getElementById('new-item-source');
+  const label = labelInp.value.trim();
+  if(!label){ toast('Fadlan geli cinwaanka qodobka.'); return; }
+  const order = INSPECTION_ITEMS.length;
+  const key = db.child('inspectionItems').push().key;
+  db.child('inspectionItems/'+key).set({label, source: sourceSel.value, order}).then(()=>{
+    labelInp.value = '';
+    toast('Qodobka waa la daray.');
+  });
+}
+function updateInspectionItem(id, field, value){
+  db.child('inspectionItems/'+id+'/'+field).set(field==='label' ? value.trim() : value);
+}
+function deleteInspectionItem(id){
+  if(!confirm('Ma hubtaa inaad tirtirto qodobkan? Taftiishyadii hore ee isticmaalay qodobkan way sii jirayaan sida ay ahaayeen.')) return;
+  db.child('inspectionItems/'+id).remove().then(()=>toast('Qodobka waa la tirtiray.'));
 }
 
 // ---------- Utils ----------
