@@ -235,9 +235,7 @@
     <span class="back-link" onclick="showView('view-teacher-select')">← Dooro fasal kale</span>
     <div class="card">
       <h2 id="batch-title"></h2>
-      <div id="batch-locked-banner" class="locked-banner hidden">
-        🔒 Warbixintan horeba waad soo gudbisay. Lama badali karo.
-      </div>
+      <div id="batch-locked-banner" class="locked-banner hidden"></div>
       <div id="batch-form-area"></div>
       <div class="center" id="batch-submit-area" style="margin-top:16px;"></div>
     </div>
@@ -298,10 +296,18 @@
       </div>
 
       <div class="card">
-        <h3>📅 Xaalada Macallimiinta Maalin ahaan</h3>
-        <p class="muted">Dooro taariikh si aad u aragto immisa arday macalin kastaa soo gudbiyay maalintaas, iyo cidii aan waxba soo gudbin.</p>
-        <label>Taariikhda</label>
-        <input type="date" id="daily-date" onchange="renderDailyTeacherStatus()">
+        <h3>📅 Xaalada Macallimiinta (Xilli go'an)</h3>
+        <p class="muted">Dooro taariikhda bilowga iyo dhamaadka si aad u aragto immisa arday macalin kastaa xilligaas soo gudbiyay, iyo cidii aan waxba soo gudbin.</p>
+        <div class="row">
+          <div>
+            <label>Laga bilaabo</label>
+            <input type="date" id="daily-date-start" onchange="renderDailyTeacherStatus()">
+          </div>
+          <div>
+            <label>Ilaa</label>
+            <input type="date" id="daily-date-end" onchange="renderDailyTeacherStatus()">
+          </div>
+        </div>
         <div id="daily-status" style="margin-top:14px;"></div>
       </div>
 
@@ -624,36 +630,34 @@ function openBatch(){
   const formArea = document.getElementById('batch-form-area');
   const submitArea = document.getElementById('batch-submit-area');
 
-  if(existing && existing.locked){
-    bannerEl.classList.remove('hidden');
-    submitArea.innerHTML = '';
-    const items = Object.values(existing.students || {});
-    formArea.innerHTML = items.length ? items.map(s=>`
-      <div class="flagged-item">
-        <div class="flagged-head"><span class="flagged-name">${escapeHtml(s.name)}</span></div>
-        <p style="margin:6px 0 0;font-size:0.88rem;">${escapeHtml(s.cilad)}</p>
-      </div>`).join('') : '<p class="muted">Ma soo gudbin arday hoosaysa fasalkan.</p>';
-    showView('view-teacher-batch');
-    return;
-  }
-
-  bannerEl.classList.add('hidden');
   const students = Object.entries(STUDENTS).filter(([id,s])=>s.fasal===fasal && s.section===section);
   if(students.length===0){
+    bannerEl.classList.add('hidden');
     formArea.innerHTML = '<p class="muted">Fasalkan ardayda lagama helin xogta. Fadlan maamulka la xiriir si xogta loo soo geliyo.</p>';
     submitArea.innerHTML = '';
     showView('view-teacher-batch');
     return;
   }
-  formArea.innerHTML = students.map(([id,s])=>`
+
+  if(existing){
+    bannerEl.classList.remove('hidden');
+    bannerEl.textContent = '✏️ Warbixintan horeba waad soo gudbisay. Waad hoos wax uga beddeli kartaa (ka tirtir, cusboonaysii cilladda) ama arday cusub ku dari kartaa, kadibna riix "Cusboonaysii Warbixinta".';
+  } else {
+    bannerEl.classList.add('hidden');
+  }
+  const existingStudents = (existing && existing.students) || {};
+  formArea.innerHTML = students.map(([id,s])=>{
+    const flaggedInfo = existingStudents[id];
+    return `
     <div class="student-row">
-      <input type="checkbox" id="chk-${id}" onchange="toggleCilad('${id}')">
+      <input type="checkbox" id="chk-${id}" ${flaggedInfo ? 'checked' : ''} onchange="toggleCilad('${id}')">
       <div style="flex:1;">
         <div class="student-name">${escapeHtml(s.name)}</div>
-        <textarea id="cilad-${id}" class="hidden" placeholder="Qor ciladda uu ku hooseeyo maadadan..."></textarea>
+        <textarea id="cilad-${id}" class="${flaggedInfo ? '' : 'hidden'}" placeholder="Qor ciladda uu ku hooseeyo maadadan...">${flaggedInfo ? escapeHtml(flaggedInfo.cilad) : ''}</textarea>
       </div>
-    </div>`).join('');
-  submitArea.innerHTML = `<button class="btn-primary" onclick="submitBatch()">✍️ Gudbi Warbixinta</button>`;
+    </div>`;
+  }).join('');
+  submitArea.innerHTML = `<button class="btn-primary" onclick="submitBatch()">${existing ? '💾 Cusboonaysii Warbixinta' : '✍️ Gudbi Warbixinta'}</button>`;
   showView('view-teacher-batch');
 }
 function toggleCilad(id){
@@ -675,12 +679,15 @@ function submitBatch(){
     toast('Fadlan ugu yaraan hal arday calaamadi oo cilad qor.');
     return;
   }
+  const existing = (SUBMISSIONS[currentTeacher.id] || {})[currentBatch.key];
   const payload = {
     fasal: currentBatch.fasal, section: currentBatch.section, maadada: currentBatch.maadada,
-    teacherName: currentTeacher.name, submittedAt: Date.now(), locked: true, students: flagged
+    teacherName: currentTeacher.name, submittedAt: existing ? existing.submittedAt : Date.now(),
+    locked: true, students: flagged
   };
+  if(existing) payload.editedAt = Date.now();
   db.child('submissions/'+currentTeacher.id+'/'+currentBatch.key).set(payload).then(()=>{
-    toast('Waa la gudbiyay. Mahadsanid!');
+    toast(existing ? 'Warbixinta waa la cusboonaysiiyay.' : 'Waa la gudbiyay. Mahadsanid!');
     openBatch();
   });
 }
@@ -834,25 +841,27 @@ function renderProgress(){
     </div>`).join('');
 }
 function initDailyDateDefault(){
-  const inp = document.getElementById('daily-date');
-  if(inp && !inp.value){
-    const d = new Date();
-    const iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    inp.value = iso;
-  }
+  const startInp = document.getElementById('daily-date-start');
+  const endInp = document.getElementById('daily-date-end');
+  const iso = (d)=> d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const today = iso(new Date());
+  if(startInp && !startInp.value) startInp.value = today;
+  if(endInp && !endInp.value) endInp.value = today;
 }
 function renderDailyTeacherStatus(){
   const el = document.getElementById('daily-status');
-  const dateInp = document.getElementById('daily-date');
-  if(!el || !dateInp) return;
-  const dateVal = dateInp.value;
-  if(!dateVal){ el.innerHTML = '<p class="muted">Dooro taariikh.</p>'; return; }
-  const dayStart = new Date(dateVal+'T00:00:00').getTime();
-  const dayEnd = dayStart + 24*60*60*1000;
+  const startInp = document.getElementById('daily-date-start');
+  const endInp = document.getElementById('daily-date-end');
+  if(!el || !startInp || !endInp) return;
+  const startVal = startInp.value, endVal = endInp.value;
+  if(!startVal || !endVal){ el.innerHTML = '<p class="muted">Dooro taariikhda bilowga iyo dhamaadka.</p>'; return; }
+  const rangeStart = new Date(startVal+'T00:00:00').getTime();
+  const rangeEnd = new Date(endVal+'T00:00:00').getTime() + 24*60*60*1000;
+  if(rangeEnd <= rangeStart){ el.innerHTML = '<p class="muted">Taariikhda dhamaadku waa in ay ka dambaysaa ama la mid tahay tan bilowga.</p>'; return; }
   const counts = {}; // teacherId -> count
   Object.entries(SUBMISSIONS).forEach(([teacherId, batches])=>{
     Object.values(batches || {}).forEach(b=>{
-      if(b.submittedAt >= dayStart && b.submittedAt < dayEnd){
+      if(b.submittedAt >= rangeStart && b.submittedAt < rangeEnd){
         counts[teacherId] = (counts[teacherId] || 0) + Object.keys(b.students||{}).length;
       }
     });
@@ -863,7 +872,7 @@ function renderDailyTeacherStatus(){
   const submitted = rows.filter(r=>r.count>0);
   const notSubmitted = rows.filter(r=>r.count===0);
   el.innerHTML = `
-    <p class="muted" style="margin-bottom:8px;">✅ ${submitted.length} macalin ayaa wax soo gudbiyay · ⚠️ ${notSubmitted.length} macalin ma soo gudbin waxba</p>
+    <p class="muted" style="margin-bottom:8px;">✅ ${submitted.length} macalin ayaa wax soo gudbiyay · ⚠️ ${notSubmitted.length} macalin ma soo gudbin waxba xilligan</p>
     ${rows.map(r=>`
       <div class="student-row">
         <div style="flex:1;">
