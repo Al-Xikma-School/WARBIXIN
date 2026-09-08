@@ -866,11 +866,11 @@ function deleteFlaggedStudent(sid, name){
 }
 function buildParentMessage(studentName, details){
   const lines = details.map(d=>`• ${d.maadada}: ${d.cilad}`).join('\n');
-  return `Assalaamu Calaykum Warahmatullaahi Wabarakaatuh,\n\n`+
-    `Waan idin salaamayaa oo Alle wanaag idinku siiyo.\n\n`+
-    `Waxaan ahay Dugsiga AL-XIKMA, waxaana idiin soo sheegaynaa in ilmihiinna ${studentName} ay macallimiintu ku dhex arkeen dhowr dhinac oo u baahan taageero dheeraad ah:\n\n`+
+  return `السلام عليكم ورحمة الله وبركاته ,\n\n`+
+    `Waan idin salaamayaa  salaan ka dib.\n\n`+
+    `Waxaan nahay maamulka  Dugsiga AL-XIKMA, waarid waxaan kula wadaagaynaa in ardayga  ${studentName} ay macallimiintu ku dhex arkeen dhowr dhinac oo u baahan taageero dheeraad ah:\n\n`+
     `${lines}\n\n`+
-    `Waxaan aad idiinku faraxsanahay haddii aad wakhti nagu siisaan si aan wada hadalno sida ugu wanaagsan ee aan ilmihiinna uga caawin karno, InshaAllah.\n\n`+
+    `Hadaba waxaan kaa codsanaynaa in xafiiska dugsiga hoose noogu timaadid xilliga ugu horeeya ee aad jaanis heshis xilli subax ah  ,Waan ku faraxsanahay haddii aad wakhti nagu siisaan si aan uga wada hadalno sida ugu wanaagsan ee aan ilmihiinna uga caawin karno, InshaAllah.\n\n`+
     `Mahadsanidiin, Jazaakumu Allahu Khayran.\n— Dugsiga AL-XIKMA SCHOOL`;
 }
 
