@@ -9,6 +9,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root{
     --board:#1F3D2E;
@@ -300,6 +302,9 @@
           </div>
           <div style="flex:0;">
             <button class="btn-ghost btn-sm" onclick="clearDashDateFilter()">Nadiifi</button>
+          </div>
+          <div style="flex:0;">
+            <button class="btn-primary btn-sm" onclick="exportDashboardPDF()">📄 PDF (3+ Macalin)</button>
           </div>
         </div>
         <div id="dash-list" style="margin-top:14px;"></div>
@@ -851,6 +856,69 @@ function renderDashboard(){
     </div>`;
   }).join('');
 }
+function exportDashboardPDF(){
+  const fromVal = document.getElementById('dash-date-from') ? document.getElementById('dash-date-from').value : '';
+  const toVal = document.getElementById('dash-date-to') ? document.getElementById('dash-date-to').value : '';
+  const fromTs = fromVal ? new Date(fromVal+'T00:00:00').getTime() : null;
+  const toTs = toVal ? new Date(toVal+'T23:59:59').getTime() : null;
+
+  const agg = {}; // studentId -> {name, teacherSet:Set}
+  Object.entries(SUBMISSIONS).forEach(([teacherId, batches])=>{
+    Object.values(batches || {}).forEach(b=>{
+      if(fromTs && b.submittedAt < fromTs) return;
+      if(toTs && b.submittedAt > toTs) return;
+      Object.entries(b.students || {}).forEach(([sid, info])=>{
+        if(!agg[sid]) agg[sid] = {name: info.name, teacherSet: new Set()};
+        agg[sid].teacherSet.add(teacherId);
+      });
+    });
+  });
+
+  const MIN_TEACHERS = 3;
+  const list = Object.entries(agg)
+    .filter(([sid, data]) => data.teacherSet.size >= MIN_TEACHERS)
+    .sort((a,b) => b[1].teacherSet.size - a[1].teacherSet.size);
+
+  if(list.length === 0){
+    toast(`Ma jiro arday ay ${MIN_TEACHERS} macalin ama in ka badan isku raaceen hoosayntiisa.`);
+    return;
+  }
+
+  if(!window.jspdf){ toast('PDF library-ga lama soo shubin. Fadlan hubi internet-ka.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const dateRangeStr = (fromVal || toVal) ? `${fromVal || '...'}  ilaa  ${toVal || '...'}` : 'Dhammaan taariikhaha';
+  doc.setFontSize(13);
+  doc.text('AL-XIKMA SCHOOL', 14, 15);
+  doc.setFontSize(11);
+  doc.text(`Liiska Ardayda ay ${MIN_TEACHERS}+ Macalin Isku Raaceen Hoosayntiisa`, 14, 22);
+  doc.setFontSize(9);
+  doc.text(`Taariikhda: ${dateRangeStr}`, 14, 28);
+
+  const rows = list.map(([sid, data], idx) => {
+    const student = STUDENTS[sid] || {};
+    return [
+      String(idx + 1),
+      data.name || '',
+      student.phone1 || '-',
+      student.phone2 || '-',
+      String(data.teacherSet.size)
+    ];
+  });
+
+  doc.autoTable({
+    startY: 34,
+    head: [['#', 'Magaca Ardayga', 'Taleefonka 1', 'Taleefonka 2', 'Inta Macalin']],
+    body: rows,
+    styles: { fontSize: 10, cellPadding: 3 },
+    headStyles: { fillColor: [31, 61, 46], textColor: [255, 255, 255] },
+    columnStyles: { 0: { cellWidth: 10 }, 4: { cellWidth: 24, halign: 'center' } }
+  });
+
+  const stamp = fromVal || toVal ? `${fromVal||'dhamaan'}_${toVal||'dhamaan'}` : new Date().toISOString().slice(0,10);
+  doc.save(`ardayda-hoosaysa-${stamp}.pdf`);
+}
 function deleteFlaggedStudent(sid, name){
   if(!confirm(`Ma hubtaa inaad ka tirtirto "${name}" liiska warbixinta? Xogta ardayga ee guud (roster) lama taaban doono.`)) return;
   const updates = {};
@@ -866,12 +934,13 @@ function deleteFlaggedStudent(sid, name){
 }
 function buildParentMessage(studentName, details){
   const lines = details.map(d=>`• ${d.maadada}: ${d.cilad}`).join('\n');
-  return `السلام عليكم ورحمة الله وبركاته ,\n\n`+
-    `Waan idin salaamayaa  salaan ka dib.\n\n`+
-    `Waxaan nahay maamulka  Dugsiga AL-XIKMA, waarid waxaan kula wadaagaynaa in ardayga  ${studentName} ay macallimiintu ku dhex arkeen dhowr dhinac oo u baahan taageero dheeraad ah:\n\n`+
+  return `السلام عليكم ورحمة الله وبركاته\n\n`+
+    `Waan idin salaamayaa, Alle ha idin siiyo caafimaad iyo wanaag.\n\n`+
+    `Waxaan nahay Maamulka Dugsiga AL-XIKMA, waxaanan jeclaan lahayn inaan kula wadaagno in ardaygiinna ${studentName} ay macallimiintu ku dhex arkeen dhowr dhinac oo u baahan taageero dheeraad ah:\n\n`+
     `${lines}\n\n`+
-    `Hadaba waxaan kaa codsanaynaa in xafiiska dugsiga hoose noogu timaadid xilliga ugu horeeya ee aad jaanis heshis xilli subax ah  ,Waan ku faraxsanahay haddii aad wakhti nagu siisaan si aan uga wada hadalno sida ugu wanaagsan ee aan ilmihiinna uga caawin karno, InshaAllah.\n\n`+
-    `Mahadsanidiin, Jazaakumu Allahu Khayran.\n— Dugsiga AL-XIKMA SCHOOL`;
+    `Sidaas darteed, waxaan idinka codsanaynaa inaad xafiiska dugsiga hoos yimaadaan xilliga ugu horreeya ee suurtogal ah — laga bilaabo subaxnimo — si aan wada hadalno oo aan isla soo baarno habka ugu wanaagsan ee aan ilmihiinna uga caawin karno, InshaAllah.\n\n`+
+    `Waan ku mahadcelinaynaa iskaashigiinna joogtada ah ee horumarka carruurta.\n\n`+
+    `Jazaakumu Allahu Khayran.\n— Maamulka Dugsiga AL-XIKMA SCHOOL`;
 }
 
 // ---------- Progress tracking ----------
