@@ -645,8 +645,25 @@
       <input type="text" id="sel-maadada" list="maadada-list" placeholder="Tusaale: Xisaabta">
       <datalist id="maadada-list"></datalist>
       <div class="center" style="margin-top:18px;">
-        <button class="btn-primary" onclick="openBatch()">Sii wad →</button>
+        <button class="btn-primary" onclick="openBatch()">✍️ Warbixinta Hoosaynta →</button>
       </div>
+      <hr style="border:none;border-top:1px dashed #7a8a80;margin:20px 0;">
+      <p class="muted center" style="margin-bottom:8px;">Ama, u gudbi warbixinta toddobaadlaha ee Qur'aanka (maadada looma baahna):</p>
+      <div class="center">
+        <button class="btn-primary" style="background:#2b6f4f;" onclick="openQuranBatch()">📖 Warbixinta Quraanka Asbuucii →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teacher Quran weekly report (batch form, no maadada) -->
+  <div id="view-quran-batch" class="hidden">
+    <span class="back-link" onclick="showView('view-teacher-select')">← Dooro fasal kale</span>
+    <div class="card">
+      <h2 id="quran-batch-title"></h2>
+      <p class="muted">Geli immisa maalmood ee toddobaadkan uusan garanayn/dib-u-akhrin Qur'aankiisa ardaygu. Ka tag madhan haddii uusan wax dhibaato lahayn.</p>
+      <input type="text" id="quran-student-search" placeholder="Raadi magaca ardayga..." oninput="renderQuranBatchForm()" style="margin-bottom:10px;">
+      <div id="quran-batch-form-area"></div>
+      <div class="center" id="quran-batch-submit-area" style="margin-top:16px;"></div>
     </div>
   </div>
 
@@ -680,6 +697,7 @@
     <span class="back-link" onclick="logout()">← Ka bax</span>
     <div class="tabs">
       <div class="tab active" data-tab="dash" onclick="switchAdminTab('dash')">📊 Guddiga</div>
+      <div class="tab" data-tab="quran" onclick="switchAdminTab('quran')">📖 Quraanka Asbuuciile</div>
       <div class="tab" data-tab="progress" onclick="switchAdminTab('progress')">✅ Xaalada Gudbinta</div>
       <div class="tab" data-tab="students" onclick="switchAdminTab('students')">🎓 Ardayda</div>
       <div class="tab" data-tab="teachers" onclick="switchAdminTab('teachers')">👩‍🏫 Macallimiinta</div>
@@ -709,6 +727,27 @@
           </div>
         </div>
         <div id="dash-list" style="margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <div id="tab-quran" class="admin-tab hidden">
+      <div class="card">
+        <h2>📖 Warbixinta Quraanka Asbuucii</h2>
+        <p class="muted">Ardayda ay macallimiintu soo sheegeen inay maalmo ka maqnaayeen xifdiga/akhriska Qur'aankooda toddobaadkan. Fariinta hoose waa mid diiniyad ah oo qurux badan — waxaad ku diri kartaa waalidka si toos ah oo WhatsApp ah. Macallimiintu waxay keliya soo geliyaan xogta — adigu (Maamulka) ayaa keliya diri kara fariimaha.</p>
+        <div class="row" style="align-items:flex-end;">
+          <div>
+            <label>Laga bilaabo taariikhda</label>
+            <input type="date" id="quran-date-from" onchange="renderQuranDashboard()">
+          </div>
+          <div>
+            <label>Ilaa taariikhda</label>
+            <input type="date" id="quran-date-to" onchange="renderQuranDashboard()">
+          </div>
+          <div style="flex:0;">
+            <button class="btn-ghost btn-sm" onclick="clearQuranDateFilter()">Nadiifi</button>
+          </div>
+        </div>
+        <div id="quran-list" style="margin-top:14px;"></div>
       </div>
     </div>
 
@@ -954,9 +993,11 @@ let CURRENT_DEPT = null; // 'iskuul' or 'quraan'
 let STUDENTS = {};   // id -> {name, phone1, phone2, fasal, section}
 let TEACHERS = {};   // id -> {name, pin}
 let SUBMISSIONS = {}; // teacherId -> batchKey -> {...}
+let QURAN_SUBMISSIONS = {}; // teacherId -> batchKey -> {fasal, section, teacherName, submittedAt, students:{sid:{name,days}}}
 let INSPECTIONS = {}; // teacherId -> key -> {teacherName, date, subjects:[{maadada, items, notes}]}
 let currentTeacher = null; // {id, name}
 let currentBatch = null; // {fasal, section, maadada, key}
+let currentQuranBatch = null; // {fasal, section, key}
 let currentInspection = null; // {teacherId, teacherName, m1, m2}
 
 // Checklist-ka Taftiishka Maamulka: "buug" = waxaa lagu baarayaa buugta, "arday" = waxaa lagu ogaanayaa su'aal ardayda
@@ -993,10 +1034,10 @@ function batchKey(fasal, section, maadada){
 
 // ---------- Department selection ----------
 function selectDept(dept){
-  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); }
+  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); }
   CURRENT_DEPT = dept;
   db = firebase.database().ref('ardaydaHoosaysa/' + dept); // namespaced per department so Iskuulka & Quraanka never mix
-  STUDENTS = {}; TEACHERS = {}; SUBMISSIONS = {}; currentTeacher = null; currentBatch = null;
+  STUDENTS = {}; TEACHERS = {}; SUBMISSIONS = {}; QURAN_SUBMISSIONS = {}; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
   if(window.QoraalMobileApp) QoraalMobileApp.reset();
   document.getElementById('dept-label').textContent = dept === 'quraan' ? 'Qaybta Qur\u2019aanka' : 'Qaybta Iskuulka';
   if(dept === 'iskuul') migrateLegacyIskuulData();
@@ -1024,8 +1065,8 @@ function migrateLegacyIskuulData(){
   });
 }
 function backToDeptSelect(){
-  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); }
-  db = null; CURRENT_DEPT = null; currentTeacher = null; currentBatch = null;
+  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); }
+  db = null; CURRENT_DEPT = null; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
   if(window.QoraalMobileApp) QoraalMobileApp.reset();
   showView('view-dept');
 }
@@ -1035,6 +1076,7 @@ function attachFirebaseListeners(){
   db.child('students').on('value', snap=>{ STUDENTS = snap.val() || {}; populateFasalDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderStudentList(); });
   db.child('teachers').on('value', snap=>{ TEACHERS = snap.val() || {}; populateTeacherDropdown(); populateInspectTeacherDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList(); });
   db.child('submissions').on('value', snap=>{ SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
+  db.child('quranWeekly').on('value', snap=>{ QURAN_SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
   db.child('inspections').on('value', snap=>{ INSPECTIONS = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden')) renderInspectionHistory(); });
   db.child('config/adminPin').once('value', snap=>{ if(!snap.exists()) db.child('config/adminPin').set('1234'); });
   db.child('inspectionItems').once('value', snap=>{
@@ -1058,7 +1100,7 @@ function attachFirebaseListeners(){
 
 function refreshAdminIfVisible(){
   if(!document.getElementById('view-admin').classList.contains('hidden')){
-    renderDashboard(); renderProgress();
+    renderDashboard(); renderProgress(); renderQuranDashboard();
   }
 }
 
@@ -1195,6 +1237,76 @@ function submitBatch(){
   });
 }
 
+// ---------- Teacher batch: Quran weekly report (no maadada, days-missed per student) ----------
+function openQuranBatch(){
+  const fasal = document.getElementById('sel-fasal').value;
+  const section = document.getElementById('sel-section').value;
+  if(!fasal || !section){ toast('Fadlan dooro fasalka iyo section-ka.'); return; }
+  const key = batchKey(fasal, section, 'quran');
+  currentQuranBatch = {fasal, section, key};
+  document.getElementById('quran-batch-title').textContent = `📖 Quraanka Asbuucii — ${fasal} — ${section}`;
+  const searchEl = document.getElementById('quran-student-search');
+  if(searchEl) searchEl.value = '';
+  renderQuranBatchForm();
+  showView('view-quran-batch');
+}
+function renderQuranBatchForm(){
+  if(!currentQuranBatch) return;
+  const {fasal, section, key} = currentQuranBatch;
+  const searchVal = (document.getElementById('quran-student-search').value || '').trim().toLowerCase();
+  const formArea = document.getElementById('quran-batch-form-area');
+  const submitArea = document.getElementById('quran-batch-submit-area');
+  const existing = (QURAN_SUBMISSIONS[currentTeacher.id] || {})[key];
+  const existingStudents = (existing && existing.students) || {};
+
+  const students = Object.entries(STUDENTS).filter(([id,s])=> s.fasal===fasal && s.section===section && (!searchVal || s.name.toLowerCase().includes(searchVal)));
+  if(students.length===0){
+    formArea.innerHTML = '<p class="muted">Arday lama helin fasalkan.</p>';
+    submitArea.innerHTML = '';
+    return;
+  }
+  formArea.innerHTML = students.map(([id,s])=>{
+    const info = existingStudents[id];
+    return `
+    <div class="student-row">
+      <div style="flex:1;">
+        <div class="student-name">${escapeHtml(s.name)}</div>
+        <div class="muted" style="font-size:0.78rem;">Immisa maalmood ee toddobaadkan uusan garanayn Qur'aankiisa</div>
+      </div>
+      <div style="width:100px;">
+        <input type="number" min="0" max="7" id="qdays-${id}" placeholder="0" value="${info ? info.days : ''}">
+      </div>
+    </div>`;
+  }).join('');
+  submitArea.innerHTML = `<button class="btn-primary" onclick="submitQuranBatch()">${existing ? '💾 Cusboonaysii Warbixinta' : '✍️ Gudbi Warbixinta'}</button>`;
+}
+function submitQuranBatch(){
+  if(!currentQuranBatch) return;
+  const flagged = {};
+  Object.keys(STUDENTS).forEach(id=>{
+    const inp = document.getElementById('qdays-'+id);
+    if(inp && inp.value.trim() !== ''){
+      const days = parseInt(inp.value, 10);
+      if(!isNaN(days) && days > 0){ flagged[id] = {name: STUDENTS[id].name, days}; }
+    }
+  });
+  if(Object.keys(flagged).length === 0){
+    toast('Fadlan geli ugu yaraan hal arday oo maalmo leh.');
+    return;
+  }
+  const existing = (QURAN_SUBMISSIONS[currentTeacher.id] || {})[currentQuranBatch.key];
+  const payload = {
+    fasal: currentQuranBatch.fasal, section: currentQuranBatch.section,
+    teacherName: currentTeacher.name, submittedAt: existing ? existing.submittedAt : Date.now(),
+    students: flagged
+  };
+  if(existing) payload.editedAt = Date.now();
+  db.child('quranWeekly/'+currentTeacher.id+'/'+currentQuranBatch.key).set(payload).then(()=>{
+    toast(existing ? 'Warbixinta Quraanka waa la cusboonaysiiyay.' : 'Warbixinta Quraanka waa la gudbiyay. Mahadsanid!');
+    openQuranBatch();
+  });
+}
+
 // ---------- Admin login ----------
 function adminLogin(){
   const pin = document.getElementById('a-pin').value.trim();
@@ -1218,6 +1330,7 @@ function switchAdminTab(tab){
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.add('hidden'));
   document.getElementById('tab-'+tab).classList.remove('hidden');
   if(tab==='dash') renderDashboard();
+  if(tab==='quran') renderQuranDashboard();
   if(tab==='progress'){ renderProgress(); initDailyDateDefault(); renderDailyTeacherStatus(); renderStudentReportSearch(); }
   if(tab==='students') renderStudentList();
   if(tab==='teachers') renderTeacherList();
@@ -1385,6 +1498,94 @@ function buildParentMessage(studentName, details){
     `Sidaas darteed, waxaan idinka codsanaynaa inaad xafiiska dugsiga hoos yimaadaan xilliga ugu horreeya ee suurtogal ah — laga bilaabo subaxnimo — si aan wada hadalno oo aan isla soo baarno habka ugu wanaagsan ee aan ilmihiinna uga caawin karno, InshaAllah.\n\n`+
     `Waan ku mahadcelinaynaa iskaashigiinna joogtada ah ee horumarka carruurta.\n\n`+
     `Jazaakumu Allahu Khayran.\n— Maamulka Dugsiga AL-XIKMA SCHOOL`;
+}
+
+// ---------- Quran weekly report dashboard (admin) ----------
+function clearQuranDateFilter(){
+  document.getElementById('quran-date-from').value = '';
+  document.getElementById('quran-date-to').value = '';
+  renderQuranDashboard();
+}
+function renderQuranDashboard(){
+  const listEl = document.getElementById('quran-list');
+  if(!listEl) return; // tab not yet rendered
+  const fromVal = document.getElementById('quran-date-from') ? document.getElementById('quran-date-from').value : '';
+  const toVal = document.getElementById('quran-date-to') ? document.getElementById('quran-date-to').value : '';
+  const fromTs = fromVal ? new Date(fromVal+'T00:00:00').getTime() : null;
+  const toTs = toVal ? new Date(toVal+'T23:59:59').getTime() : null;
+
+  const agg = {}; // sid -> {name, totalDays, details:[]}
+  Object.entries(QURAN_SUBMISSIONS).forEach(([teacherId, batches])=>{
+    Object.values(batches || {}).forEach(b=>{
+      const ts = b.editedAt || b.submittedAt;
+      if(fromTs && ts < fromTs) return;
+      if(toTs && ts > toTs) return;
+      Object.entries(b.students || {}).forEach(([sid, info])=>{
+        if(!agg[sid]) agg[sid] = {name: info.name, totalDays: 0, details: []};
+        agg[sid].totalDays += (info.days || 0);
+        agg[sid].details.push({teacherName: b.teacherName, fasal: b.fasal, section: b.section, days: info.days, ts});
+      });
+    });
+  });
+  const list = Object.entries(agg).sort((a,b)=> b[1].totalDays - a[1].totalDays);
+  if(list.length===0){ listEl.innerHTML = '<p class="muted">Weli lama soo gudbin wax warbixin Qur\u2019aan ah.</p>'; return; }
+  listEl.innerHTML = list.map(([sid, data])=>{
+    const student = STUDENTS[sid] || {};
+    const detailsHtml = data.details.map(d=>`<li><b>${escapeHtml(d.fasal)} · ${escapeHtml(d.section)}</b> — ${escapeHtml(d.teacherName)}: ${d.days} maalmood — <span class="muted">${new Date(d.ts).toLocaleDateString('so')}</span></li>`).join('');
+    const phone1 = student.phone1 ? student.phone1.replace(/[^0-9+]/g,'') : '';
+    const phone2 = student.phone2 ? student.phone2.replace(/[^0-9+]/g,'') : '';
+    const waText = encodeURIComponent(buildQuranParentMessage(data.name, data.totalDays));
+    let waButtons = '';
+    if(phone1 && phone2){
+      waButtons = `
+        <a href="https://wa.me/${phone1}?text=${waText}" target="_blank"><button class="btn-whatsapp btn-sm">💬 Waalidka 1</button></a>
+        <a href="https://wa.me/${phone2}?text=${waText}" target="_blank"><button class="btn-whatsapp btn-sm">💬 Waalidka 2</button></a>`;
+    } else if(phone1 || phone2){
+      waButtons = `<a href="https://wa.me/${phone1||phone2}?text=${waText}" target="_blank"><button class="btn-whatsapp btn-sm">💬 WhatsApp Waalidka</button></a>`;
+    } else {
+      waButtons = '<span class="muted">Telefoon lama helin</span>';
+    }
+    return `
+    <div class="flagged-item">
+      <div class="flagged-head">
+        <div>
+          <span class="flagged-name" style="margin-right:10px;">${escapeHtml(data.name)}</span>
+          <span class="pill">${data.totalDays} maalmood</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${waButtons}
+          <button class="btn-danger btn-sm" onclick="deleteFlaggedQuranStudent('${sid}','${escapeHtml(data.name)}')">🗑️ Tirtir</button>
+        </div>
+      </div>
+      <div class="muted" style="margin-top:4px;">${escapeHtml(student.fasal||'')} · ${escapeHtml(student.section||'')}</div>
+      <ul class="detail-list">${detailsHtml}</ul>
+    </div>`;
+  }).join('');
+}
+function deleteFlaggedQuranStudent(sid, name){
+  if(!confirm(`Ma hubtaa inaad ka tirtirto "${name}" liiska warbixinta Qur\u2019aanka? Xogta ardayga ee guud (roster) lama taaban doono.`)) return;
+  const updates = {};
+  Object.entries(QURAN_SUBMISSIONS).forEach(([teacherId, batches])=>{
+    Object.entries(batches || {}).forEach(([key, b])=>{
+      if(b.students && b.students[sid]){
+        updates[`quranWeekly/${teacherId}/${key}/students/${sid}`] = null;
+      }
+    });
+  });
+  if(Object.keys(updates).length===0){ toast('Wax lama helin oo la tirtiro.'); return; }
+  db.update(updates).then(()=>toast('Waa laga tirtiray liiska warbixinta Qur\u2019aanka.'));
+}
+function buildQuranParentMessage(studentName, totalDays){
+  const daysLine = totalDays > 0
+    ? `Waxaan si wanaagsan u xusuusan nahay in ilmahiinna ${studentName} ay toddobaadkan ka maqnaayeen ${totalDays} maalmood xifdiga/akhriska Qur'aankooda.`
+    : `Waxaan jeclaan lahayn inaan idinla wadaagno warbixinta toddobaadlaha ah ee Qur'aanka ardaygiinna ${studentName}.`;
+  return `السلام عليكم ورحمة الله وبركاته 🌙\n\n`+
+    `Waan idin salaamayaa oo Alle waan ka baryaynaa inuu idin siiyo caafimaad, barakaysan iyo wanaag. 🤲\n\n`+
+    `Waxaan nahay Qaybta Qur'aanka ee AL-XIKMA SCHOOL. ${daysLine}\n\n`+
+    `Qur'aanka Kariimka ah waa hanti aan la beddeli karin, ilmahiinnuna waa amaanad Alle idinku ammaanay — sidaas darteed kolba xusuusiya, kolba dhiirigeliya, kolbana la fadhiiso una dhagayso cashirkiisa. In yar oo wakhti ah oo maalin walba loo qaato Qur'aanka waxay isu beddeli kartaa barakaysan aan la qiyaasi karin, InshaAllah. 🌿📖\n\n`+
+    `Waxaan idinka codsanaynaa inaad si joogto ah ula soo socotaan xifdiga ilmihiinna, una dhiirigeliisaan inuu si caadi ah ula dhaqmo Qur'aankiisa toddobaad kasta.\n\n`+
+    `Waan ku mahadcelinaynaa iskaashigiinna qaaliga ah, waanan diyaar u nahay caawimo kasta oo aad u baahan tihiin — fadlan xafiiska dugsiga nala soo xiriira.\n\n`+
+    `Jazaakumu Allahu Khayran, Alle ilmahiinna ha ka dhigo mid ku faana Qur'aanka aayaha adduunka iyo aakhiraba. 🤍\n— Qaybta Qur'aanka, AL-XIKMA SCHOOL`;
 }
 
 // ---------- Progress tracking ----------
