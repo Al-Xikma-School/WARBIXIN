@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ardayda Hoosaysa — AL-XIKMA SCHOOL</title>
+<title>Kulmiye — AL-XIKMA SCHOOL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,500&display=swap" rel="stylesheet">
@@ -132,6 +132,97 @@
     padding:9px 16px;border-radius:20px;cursor:pointer;font-size:0.85rem;font-weight:600;
   }
   .tab.active{background:var(--chalk-yellow);color:var(--ink);border-color:var(--chalk-yellow);}
+
+  /* ---- Admin sidebar navigation ---- */
+  .admin-topbar{
+    position:sticky;top:0;z-index:60;
+    display:flex;align-items:center;gap:12px;
+    padding:12px 4px 16px;margin-bottom:6px;
+    border-bottom:1px dashed rgba(245,242,232,0.25);
+    background:linear-gradient(var(--board) 78%, transparent);
+  }
+  .hamburger-btn{
+    background:rgba(245,242,232,0.1);border:1px solid rgba(245,242,232,0.3);
+    color:var(--chalk);width:38px;height:38px;border-radius:9px;
+    font-size:1.1rem;cursor:pointer;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .hamburger-btn:hover{background:rgba(245,242,232,0.2);}
+  .admin-topbar-title{
+    font-family:'Kalam',cursive;color:var(--chalk-yellow);font-size:1.15rem;
+    flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .sidebar-overlay{
+    position:fixed;inset:0;background:rgba(10,18,14,0.55);
+    opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:70;
+  }
+  .sidebar-overlay.open{opacity:1;pointer-events:auto;}
+  .sidebar{
+    position:fixed;top:0;bottom:0;left:0;width:250px;max-width:80vw;
+    background:linear-gradient(180deg,#20402f 0%, var(--board) 100%);
+    border-right:1px solid rgba(245,242,232,0.15);
+    box-shadow:12px 0 30px rgba(0,0,0,0.4);
+    transform:translateX(-105%);transition:transform .25s ease;
+    z-index:80;padding:18px 14px 24px;overflow-y:auto;
+  }
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-head{
+    display:flex;align-items:center;gap:10px;
+    padding-bottom:14px;margin-bottom:14px;
+    border-bottom:1px dashed rgba(245,242,232,0.25);
+  }
+  .sidebar-logo{font-size:1.7rem;line-height:1;}
+  .sidebar-title{font-family:'Kalam',cursive;color:var(--chalk-yellow);font-size:1.15rem;font-weight:700;}
+  .sidebar-sub{color:var(--chalk-dim);font-size:0.72rem;margin-top:2px;}
+  .sidebar-close{
+    margin-right:auto;background:none;border:none;color:var(--chalk-dim);
+    font-size:1.2rem;cursor:pointer;padding:2px 6px;
+  }
+  .sidebar-close:hover{color:var(--chalk-yellow);}
+  .sidebar .tabs{flex-direction:column;flex-wrap:nowrap;gap:3px;margin-bottom:0;}
+  .sidebar .tab{
+    background:transparent;border:1px solid transparent;border-radius:9px;
+    padding:11px 12px;display:flex;align-items:center;gap:11px;
+    font-size:0.92rem;justify-content:flex-start;white-space:normal;
+  }
+  .sidebar .tab:hover{background:rgba(245,242,232,0.08);}
+  .sidebar .tab.active{background:var(--chalk-yellow);color:var(--ink);border-color:var(--chalk-yellow);}
+  .sidebar .tab .tab-icon{font-size:1.05rem;width:20px;text-align:center;flex:0 0 auto;}
+  .sidebar-logout{
+    margin-top:16px;padding-top:14px;border-top:1px dashed rgba(245,242,232,0.25);
+  }
+  .sidebar-logout .back-link{margin-bottom:0;}
+  @media(min-width:860px){
+    .sidebar-overlay{display:none;}
+    .sidebar{
+      position:sticky;top:0;transform:none;box-shadow:none;
+      border-right:1px solid rgba(245,242,232,0.15);
+      height:calc(100vh - 20px);
+    }
+    .sidebar-close{display:none;}
+    .admin-layout{display:flex;align-items:flex-start;gap:22px;}
+    .admin-layout .sidebar{flex:0 0 230px;}
+    .admin-layout .admin-content{flex:1 1 auto;min-width:0;}
+    .admin-topbar .hamburger-btn{display:none;}
+  }
+
+  /* ---- Dashboard stat cards ---- */
+  .stat-grid{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px;
+  }
+  @media(min-width:640px){ .stat-grid{grid-template-columns:repeat(4,1fr);} }
+  .stat-card{
+    background:var(--paper);color:var(--ink);border-radius:8px;
+    padding:16px 16px 14px;box-shadow:0 8px 22px rgba(0,0,0,0.3);
+    border-left:4px solid var(--chalk-yellow);
+    display:flex;flex-direction:column;gap:4px;
+  }
+  .stat-card .stat-icon{font-size:1.25rem;}
+  .stat-card .stat-value{font-family:'JetBrains Mono',monospace;font-size:1.65rem;font-weight:700;line-height:1.1;}
+  .stat-card .stat-label{font-size:0.76rem;color:#7a7364;}
+  .stat-card.stat-blue{border-left-color:var(--chalk-blue);}
+  .stat-card.stat-green{border-left-color:var(--chalk-green);}
+  .stat-card.stat-red{border-left-color:var(--chalk-red);}
   table{width:100%;border-collapse:collapse;font-size:0.88rem;}
   th{text-align:right;font-family:'Kalam',cursive;font-size:0.95rem;border-bottom:2px solid var(--ink);padding:8px 6px;}
   td{padding:9px 6px;border-bottom:1px solid #ddd7c4;vertical-align:top;}
@@ -594,13 +685,13 @@
 <body>
 <div class="frame">
   <header>
-    <h1>📋 Ardayda Hoosaysa</h1>
-    <p>AL-XIKMA SCHOOL — <span id="dept-label">Nidaamka Warbixinta Macallimiinta</span></p>
+    <h1>🌿 Kulmiye</h1>
+    <p>AL-XIKMA SCHOOL — <span id="dept-label">Nidaamka Isku-duwan ee Macallimiinta</span></p>
   </header>
 </div>
 
 <div class="wrap" id="app">
-  <!-- Department selection -->
+  <!-- Department selection (first screen) -->
   <div id="view-dept" class="role-select">
     <button class="role-btn" onclick="selectDept('iskuul')">🏫 Qaybta Iskuulka<span>Warbixinta ardayda hoosaysa — maadooyinka iskuulka</span></button>
     <button class="role-btn" onclick="selectDept('quraan')">📖 Qaybta Quraanka<span>Warbixinta ardayda hoosaysa — Qur'aanka</span></button>
@@ -694,19 +785,47 @@
 
   <!-- Admin dashboard -->
   <div id="view-admin" class="hidden">
-    <span class="back-link" onclick="logout()">← Ka bax</span>
-    <div class="tabs">
-      <div class="tab active" data-tab="dash" onclick="switchAdminTab('dash')">📊 Guddiga</div>
-      <div class="tab" data-tab="quran" onclick="switchAdminTab('quran')">📖 Quraanka Asbuuciile</div>
-      <div class="tab" data-tab="progress" onclick="switchAdminTab('progress')">✅ Xaalada Gudbinta</div>
-      <div class="tab" data-tab="students" onclick="switchAdminTab('students')">🎓 Ardayda</div>
-      <div class="tab" data-tab="teachers" onclick="switchAdminTab('teachers')">👩‍🏫 Macallimiinta</div>
-      <div class="tab" data-tab="inspect" onclick="switchAdminTab('inspect')">🔍 Taftiishka Maamulka</div>
-      <div class="tab" data-tab="meetings" onclick="switchAdminTab('meetings')">📓 Notebook</div>
-      <div class="tab" data-tab="settings" onclick="switchAdminTab('settings')">⚙️ Settings</div>
+    <div class="admin-topbar">
+      <button class="hamburger-btn" onclick="openAdminMenu()" aria-label="Furto liiska">☰</button>
+      <span class="admin-topbar-title" id="admin-section-title">Ardayda Hoosaysa</span>
+      <span class="back-link" style="margin-bottom:0;" onclick="logout()">← Ka bax</span>
+    </div>
+
+    <div class="sidebar-overlay" id="admin-sidebar-overlay" onclick="closeAdminMenu()"></div>
+
+    <div class="admin-layout">
+      <nav class="sidebar" id="admin-sidebar">
+        <div class="sidebar-head">
+          <span class="sidebar-logo">🍃</span>
+          <div>
+            <div class="sidebar-title">Kulmiye</div>
+            <div class="sidebar-sub">Qaybta Maamulka</div>
+          </div>
+          <button class="sidebar-close" onclick="closeAdminMenu()" aria-label="Xir liiska">✕</button>
+        </div>
+        <div class="tabs" id="admin-main-tabs">
+          <div class="tab" data-tab="teachers" data-label="Macallimiinta" onclick="switchAdminTab('teachers')"><span class="tab-icon">👩‍🏫</span> Macallimiinta</div>
+          <div class="tab" data-tab="students" data-label="Ardayda" onclick="switchAdminTab('students')"><span class="tab-icon">🎓</span> Ardayda</div>
+          <div class="tab" data-tab="meetings" data-label="Notebook" onclick="switchAdminTab('meetings')"><span class="tab-icon">📓</span> Notebook</div>
+          <div class="tab" data-tab="inspect" data-label="Taftiishka Maamulka" onclick="switchAdminTab('inspect')"><span class="tab-icon">🔍</span> Taftiishka Maamulka</div>
+          <div class="tab active" data-tab="lowperf" data-label="Ardayda Hoosaysa" onclick="switchAdminTab('dash')"><span class="tab-icon">📋</span> Ardayda Hoosaysa</div>
+          <div class="tab" data-tab="settings" data-label="Settings" onclick="switchAdminTab('settings')"><span class="tab-icon">⚙️</span> Settings</div>
+        </div>
+        <div class="sidebar-logout">
+          <span class="back-link" onclick="logout()">← Ka bax</span>
+        </div>
+      </nav>
+
+      <div class="admin-content">
+    <div class="tabs" id="lowperf-subtabs" style="margin-top:-4px;">
+      <div class="tab active" data-subtab="dash" onclick="switchAdminTab('dash')">📊 Guddiga</div>
+      <div class="tab" data-subtab="quran" onclick="switchAdminTab('quran')">📖 Quraanka Asbuuciile</div>
+      <div class="tab" data-subtab="progress" onclick="switchAdminTab('progress')">✅ Xaalada Gudbinta</div>
     </div>
 
     <div id="tab-dash" class="admin-tab">
+      <div class="stat-grid" id="dash-stats"></div>
+
       <div class="card">
         <h2>Ardayda ugu badan cilado (kala sorotay)</h2>
         <p class="muted">Tirada calaamadaha (tally) waxay muujinaysaa immisa macalin oo gudbiyay ardaygan.</p>
@@ -883,6 +1002,11 @@
       </div>
       <div id="insp-form-area"></div>
       <div class="card">
+        <h3>🗓️ Dooro Bisha</h3>
+        <p class="muted">Taftiishyada waxaa lagu kala soocaa bishii la sameeyay — dooro bisha aad rabto inaad eegto, ama "Dhammaan Bilaha" si aad u aragto guud ahaan.</p>
+        <select id="insp-month-filter" onchange="onInspectMonthChange()"></select>
+      </div>
+      <div class="card">
         <h3>🏆 Kala-soocidda Macallimiinta</h3>
         <p class="muted">Waxay ku salaysan tahay boqolkiiba (%) qodobada la calaamadiyay ee dhammaan taftiishyada macalinka — kan ugu sarreeya ayaa ah macallinka ugu fiican taftiishyada.</p>
         <div id="insp-ranking"></div>
@@ -970,6 +1094,8 @@
         </div>
       </div>
     </div>
+      </div><!-- /admin-content -->
+    </div><!-- /admin-layout -->
   </div>
 </div>
 
@@ -1077,7 +1203,7 @@ function attachFirebaseListeners(){
   db.child('teachers').on('value', snap=>{ TEACHERS = snap.val() || {}; populateTeacherDropdown(); populateInspectTeacherDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList(); });
   db.child('submissions').on('value', snap=>{ SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
   db.child('quranWeekly').on('value', snap=>{ QURAN_SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
-  db.child('inspections').on('value', snap=>{ INSPECTIONS = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden')) renderInspectionHistory(); });
+  db.child('inspections').on('value', snap=>{ INSPECTIONS = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden')){ populateInspectMonthFilter(); renderInspectionRanking(); renderInspectionMatrix(); renderInspectionHistory(); } });
   db.child('config/adminPin').once('value', snap=>{ if(!snap.exists()) db.child('config/adminPin').set('1234'); });
   db.child('inspectionItems').once('value', snap=>{
     if(!snap.exists()){
@@ -1325,16 +1451,41 @@ function changeAdminPin(){
   if(!val){ toast('Geli PIN cusub.'); return; }
   db.child('config/adminPin').set(val).then(()=>{ toast('PIN-ka waa la beddelay.'); document.getElementById('new-admin-pin').value=''; });
 }
+const LOWPERF_SUBTABS = ['dash','quran','progress'];
+function openAdminMenu(){
+  document.getElementById('admin-sidebar').classList.add('open');
+  document.getElementById('admin-sidebar-overlay').classList.add('open');
+}
+function closeAdminMenu(){
+  document.getElementById('admin-sidebar').classList.remove('open');
+  document.getElementById('admin-sidebar-overlay').classList.remove('open');
+}
+function toggleAdminMenu(){
+  document.getElementById('admin-sidebar').classList.contains('open') ? closeAdminMenu() : openAdminMenu();
+}
 function switchAdminTab(tab){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+  const topTab = LOWPERF_SUBTABS.includes(tab) ? 'lowperf' : tab;
+  document.querySelectorAll('#admin-main-tabs > .tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===topTab));
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.add('hidden'));
+  closeAdminMenu();
+  const activeMainTab = document.querySelector('#admin-main-tabs > .tab.active');
+  const titleEl = document.getElementById('admin-section-title');
+  if(titleEl && activeMainTab) titleEl.textContent = activeMainTab.dataset.label || '';
+  const subtabsBar = document.getElementById('lowperf-subtabs');
+  if(topTab === 'lowperf'){
+    subtabsBar.classList.remove('hidden');
+    document.querySelectorAll('#lowperf-subtabs > .tab').forEach(t=>t.classList.toggle('active', t.dataset.subtab===tab));
+    document.getElementById('tab-'+tab).classList.remove('hidden');
+    if(tab==='dash') renderDashboard();
+    if(tab==='quran') renderQuranDashboard();
+    if(tab==='progress'){ renderProgress(); initDailyDateDefault(); renderDailyTeacherStatus(); renderStudentReportSearch(); }
+    return;
+  }
+  subtabsBar.classList.add('hidden');
   document.getElementById('tab-'+tab).classList.remove('hidden');
-  if(tab==='dash') renderDashboard();
-  if(tab==='quran') renderQuranDashboard();
-  if(tab==='progress'){ renderProgress(); initDailyDateDefault(); renderDailyTeacherStatus(); renderStudentReportSearch(); }
   if(tab==='students') renderStudentList();
   if(tab==='teachers') renderTeacherList();
-  if(tab==='inspect'){ populateInspectTeacherDropdown(); renderInspectionRanking(); renderInspectionMatrix(); renderInspectionHistory(); }
+  if(tab==='inspect'){ populateInspectTeacherDropdown(); populateInspectMonthFilter(); renderInspectionRanking(); renderInspectionMatrix(); renderInspectionHistory(); }
   if(tab==='meetings'){ if(window.QoraalMobileApp) QoraalMobileApp.init(); }
   if(tab==='settings'){ renderInspectionItemsSettings(); }
 }
@@ -1357,6 +1508,35 @@ function clearDashDateFilter(){
   document.getElementById('dash-date-to').value = '';
   renderDashboard();
 }
+function renderDashStats(flaggedCount){
+  const el = document.getElementById('dash-stats');
+  if(!el) return;
+  const totalStudents = Object.keys(STUDENTS).length;
+  const totalTeachers = Object.keys(TEACHERS).length;
+  let totalReports = 0;
+  Object.values(SUBMISSIONS).forEach(batches=>{ totalReports += Object.keys(batches||{}).length; });
+  el.innerHTML = `
+    <div class="stat-card stat-blue">
+      <span class="stat-icon">🎓</span>
+      <span class="stat-value">${totalStudents}</span>
+      <span class="stat-label">Wadarta Ardayda</span>
+    </div>
+    <div class="stat-card stat-green">
+      <span class="stat-icon">👩‍🏫</span>
+      <span class="stat-value">${totalTeachers}</span>
+      <span class="stat-label">Wadarta Macallimiinta</span>
+    </div>
+    <div class="stat-card stat-red">
+      <span class="stat-icon">🚩</span>
+      <span class="stat-value">${flaggedCount}</span>
+      <span class="stat-label">Ardayda la Calaamadiyay</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">📝</span>
+      <span class="stat-value">${totalReports}</span>
+      <span class="stat-label">Wadarta Warbixinnada</span>
+    </div>`;
+}
 function renderDashboard(){
   const fromVal = document.getElementById('dash-date-from') ? document.getElementById('dash-date-from').value : '';
   const toVal = document.getElementById('dash-date-to') ? document.getElementById('dash-date-to').value : '';
@@ -1376,6 +1556,7 @@ function renderDashboard(){
     });
   });
   const list = Object.entries(agg).sort((a,b)=> b[1].teacherSet.size - a[1].teacherSet.size);
+  renderDashStats(list.length);
   const el = document.getElementById('dash-list');
   if(list.length===0){ el.innerHTML = '<p class="muted">Weli lama soo gudbin wax warbixin ah.</p>'; return; }
   el.innerHTML = list.map(([sid, data])=>{
@@ -1957,12 +2138,49 @@ function buildTeacherInspectionMessage(teacherName, subjects){
     `📊 Guud ahaan: ${pct}% ayaa la gaadhay — mahadsanid wixii aad horeba u fulisay, waxaanan ku rajaynaynaa inaad sii xoojiso qodobbada kale.\n\n`+
     `Mahadsanid wanaaggaaga iyo dadaalkaaga, Alle ha ku barakeeyo. Wixii su'aal ama faahfaahin dheeraad ah, nala soo xiriir.\n— Maamulka AL-XIKMA SCHOOL`;
 }
+function populateInspectMonthFilter(){
+  const sel = document.getElementById('insp-month-filter');
+  if(!sel) return;
+  const months = new Set();
+  Object.values(INSPECTIONS).forEach(batches=>{
+    Object.values(batches || {}).forEach(insp=>{
+      const d = new Date(insp.date);
+      months.add(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
+    });
+  });
+  const sorted = Array.from(months).sort().reverse();
+  const prevVal = sel.value;
+  sel.innerHTML = '<option value="">📚 Dhammaan Bilaha</option>' + sorted.map(ym=>{
+    const [y,m] = ym.split('-').map(Number);
+    const label = new Date(y, m-1, 1).toLocaleDateString('so-SO', {month:'long', year:'numeric'});
+    return `<option value="${ym}">${label}</option>`;
+  }).join('');
+  if(prevVal && sorted.includes(prevVal)) sel.value = prevVal;
+  else if(sorted.length) sel.value = sorted[0];
+  else sel.value = '';
+}
+function onInspectMonthChange(){
+  renderInspectionRanking();
+  renderInspectionMatrix();
+  renderInspectionHistory();
+}
+function getInspectMonthFilter(){
+  const sel = document.getElementById('insp-month-filter');
+  return sel ? sel.value : '';
+}
+function inspectionInMonth(insp, ym){
+  if(!ym) return true;
+  const d = new Date(insp.date);
+  return (d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')) === ym;
+}
 function renderInspectionRanking(){
   const el = document.getElementById('insp-ranking');
   if(!el) return;
+  const monthFilter = getInspectMonthFilter();
   const stats = {}; // teacherId -> {name, score, total, count, byFasal:{fasal:{score,total}}}
   Object.entries(INSPECTIONS).forEach(([teacherId, batches])=>{
     Object.values(batches || {}).forEach(insp=>{
+      if(!inspectionInMonth(insp, monthFilter)) return;
       if(!stats[teacherId]) stats[teacherId] = {name: insp.teacherName, score:0, total:0, count:0, byFasal:{}};
       stats[teacherId].count++;
       const fasal = insp.fasal || '';
@@ -2004,11 +2222,13 @@ function renderInspectionMatrix(){
   const el = document.getElementById('insp-matrix');
   if(!el) return;
   if(INSPECTION_ITEMS.length===0){ el.innerHTML = '<p class="muted">Weli qodob lama darin.</p>'; return; }
+  const monthFilter = getInspectMonthFilter();
 
   // teacherId -> {name, perItem:{itemId:{score,total}}, score, total}
   const stats = {};
   Object.entries(INSPECTIONS).forEach(([teacherId, batches])=>{
     Object.values(batches || {}).forEach(insp=>{
+      if(!inspectionInMonth(insp, monthFilter)) return;
       if(!stats[teacherId]){
         stats[teacherId] = {name: insp.teacherName, score:0, total:0, perItem:{}};
         INSPECTION_ITEMS.forEach(it=>{ stats[teacherId].perItem[it.id] = {score:0, total:0}; });
@@ -2073,9 +2293,10 @@ function renderInspectionMatrix(){
 function renderInspectionHistory(){
   const el = document.getElementById('insp-history');
   if(!el) return;
+  const monthFilter = getInspectMonthFilter();
   const entries = [];
   Object.entries(INSPECTIONS).forEach(([teacherId, batches])=>{
-    Object.entries(batches || {}).forEach(([key, insp])=>{ entries.push({teacherId, key, ...insp}); });
+    Object.entries(batches || {}).forEach(([key, insp])=>{ if(inspectionInMonth(insp, monthFilter)) entries.push({teacherId, key, ...insp}); });
   });
   entries.sort((a,b)=> b.date - a.date);
   if(entries.length===0){ el.innerHTML = '<p class="muted">Weli lama taftiishin macalin.</p>'; return; }
