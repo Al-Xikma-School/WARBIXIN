@@ -32,6 +32,8 @@
   body{
     margin:0;
     font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
     background:
       radial-gradient(ellipse at 20% 10%, #2a4a3a 0%, transparent 45%),
       radial-gradient(ellipse at 80% 90%, #16302a 0%, transparent 50%),
@@ -40,6 +42,12 @@
     min-height:100vh;
     background-attachment:fixed;
   }
+  ::selection{background:var(--chalk-yellow);color:var(--ink);}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(245,242,232,0.25);border-radius:20px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(245,242,232,0.4);}
+  a{color:inherit;}
   .frame{
     border-top:14px solid var(--wood);
     border-bottom:14px solid var(--wood);
@@ -50,15 +58,15 @@
   }
   header{
     text-align:center;
-    padding:28px 16px 20px;
+    padding:30px 16px 22px;
   }
   header h1{
     font-family:'Kalam',cursive;
     font-weight:700;
-    font-size:2.1rem;
+    font-size:2.15rem;
     margin:0;
     color:var(--chalk-yellow);
-    text-shadow:0 0 14px rgba(232,196,104,0.25);
+    text-shadow:0 0 18px rgba(232,196,104,0.3);
     letter-spacing:0.5px;
   }
   header p{
@@ -71,10 +79,10 @@
   .card{
     background:var(--paper);
     color:var(--ink);
-    border-radius:6px;
-    padding:22px 22px 22px 30px;
+    border-radius:12px;
+    padding:22px 22px 22px 28px;
     margin-bottom:18px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.35);
+    box-shadow:0 10px 28px rgba(0,0,0,0.32), 0 2px 6px rgba(0,0,0,0.12);
     position:relative;
     border-left:4px solid var(--chalk-red);
   }
@@ -92,22 +100,31 @@
     background-image:repeating-linear-gradient(var(--paper) 0 27px, var(--paper-line) 27px 28px);
   }
   label{display:block;font-size:0.82rem;font-weight:600;color:#4a5a52;margin:12px 0 4px;text-transform:uppercase;letter-spacing:0.04em;}
-  input[type=text],input[type=password],input[type=tel],select,textarea{
-    width:100%;padding:10px 12px;border:1px solid #c9c2ac;border-radius:5px;
+  input[type=text],input[type=password],input[type=tel],input[type=date],input[type=month],select,textarea{
+    width:100%;padding:10px 13px;border:1.5px solid #d8d2bd;border-radius:8px;
     font-family:'Inter',sans-serif;font-size:0.95rem;background:#fff;color:var(--ink);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  input[type=text]:hover,input[type=password]:hover,input[type=tel]:hover,select:hover,textarea:hover{border-color:#c2b998;}
+  input[type=text]:focus,input[type=password]:focus,input[type=tel]:focus,input[type=date]:focus,input[type=month]:focus,select:focus,textarea:focus{
+    outline:none;border-color:var(--chalk-yellow);box-shadow:0 0 0 3px rgba(232,196,104,0.3);
   }
   textarea{min-height:60px;resize:vertical;}
   button{
     font-family:'Inter',sans-serif;font-weight:600;font-size:0.92rem;
-    padding:10px 18px;border:none;border-radius:5px;cursor:pointer;
-    transition:transform .1s ease, box-shadow .1s ease;
+    padding:10px 18px;border:none;border-radius:8px;cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
   }
   button:active{transform:translateY(1px);}
-  .btn-primary{background:var(--ink);color:var(--chalk-yellow);}
-  .btn-primary:hover{box-shadow:0 4px 12px rgba(0,0,0,0.25);}
-  .btn-danger{background:var(--chalk-red);color:#fff;}
+  button:focus-visible{outline:2px solid var(--chalk-yellow);outline-offset:2px;}
+  .btn-primary{background:linear-gradient(155deg,#2c463d,var(--ink));color:var(--chalk-yellow);box-shadow:0 3px 10px rgba(0,0,0,0.2);}
+  .btn-primary:hover{filter:brightness(1.12);box-shadow:0 6px 16px rgba(0,0,0,0.3);transform:translateY(-1px);}
+  .btn-danger{background:linear-gradient(155deg,#e06a58,var(--chalk-red));color:#fff;box-shadow:0 3px 10px rgba(214,90,74,0.3);}
+  .btn-danger:hover{filter:brightness(1.08);transform:translateY(-1px);}
   .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink);}
-  .btn-whatsapp{background:#25D366;color:#fff;}
+  .btn-ghost:hover{background:rgba(36,59,52,0.08);}
+  .btn-whatsapp{background:#25D366;color:#fff;box-shadow:0 3px 10px rgba(37,211,102,0.3);}
+  .btn-whatsapp:hover{filter:brightness(1.08);transform:translateY(-1px);}
   .btn-sm{padding:6px 12px;font-size:0.82rem;}
   .row{display:flex;gap:12px;flex-wrap:wrap;}
   .row > *{flex:1;min-width:140px;}
@@ -120,17 +137,20 @@
   }
   .role-select{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-top:30px;}
   .role-btn{
-    background:var(--paper);color:var(--ink);border:none;border-radius:10px;
+    background:var(--paper);color:var(--ink);border:2px solid transparent;border-radius:14px;
     padding:34px 40px;font-family:'Kalam',cursive;font-size:1.3rem;font-weight:700;
-    cursor:pointer;box-shadow:0 10px 24px rgba(0,0,0,0.35);min-width:200px;
+    cursor:pointer;box-shadow:0 10px 26px rgba(0,0,0,0.35);min-width:200px;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
   }
   .role-btn span{display:block;font-family:'Inter',sans-serif;font-weight:400;font-size:0.78rem;color:#7a7364;margin-top:6px;text-transform:none;}
-  .role-btn:hover{transform:translateY(-3px);}
+  .role-btn:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(0,0,0,0.4);border-color:var(--chalk-yellow);}
   .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
   .tab{
     background:rgba(245,242,232,0.12);color:var(--chalk);border:1px solid rgba(245,242,232,0.3);
     padding:9px 16px;border-radius:20px;cursor:pointer;font-size:0.85rem;font-weight:600;
+    transition:background .15s ease, border-color .15s ease, transform .1s ease;
   }
+  .tab:hover{background:rgba(245,242,232,0.2);}
   .tab.active{background:var(--chalk-yellow);color:var(--ink);border-color:var(--chalk-yellow);}
 
   /* ---- Admin sidebar navigation ---- */
@@ -223,10 +243,103 @@
   .stat-card.stat-blue{border-left-color:var(--chalk-blue);}
   .stat-card.stat-green{border-left-color:var(--chalk-green);}
   .stat-card.stat-red{border-left-color:var(--chalk-red);}
+
+  /* ---- Curriculum books (Buugta) ---- */
+  .book-card{
+    display:flex;align-items:center;gap:14px;
+    background:var(--paper);color:var(--ink);border-radius:8px;
+    padding:16px;margin-bottom:12px;cursor:pointer;
+    box-shadow:0 8px 20px rgba(0,0,0,0.28);border-left:4px solid var(--chalk-yellow);
+    transition:transform .15s ease;
+  }
+  .book-card:hover{transform:translateY(-2px);}
+  .book-card .book-icon{font-size:1.8rem;flex:0 0 auto;}
+  .book-card .book-title{font-weight:700;font-size:1rem;}
+  .book-card .book-subtitle{font-size:0.8rem;color:#7a7364;}
+
+  .book-content{ color:var(--ink); }
+  .book-header{
+    position:relative;overflow:hidden;
+    background:linear-gradient(135deg, #234a37 0%, #2f6b4d 60%, #3a7d57 100%);
+    color:#fff;border-radius:16px;padding:26px 24px 24px;margin-bottom:22px;
+    box-shadow:0 12px 28px rgba(0,0,0,0.3);text-align:center;
+  }
+  .book-header::before, .book-header::after{
+    content:'';position:absolute;border-radius:50%;
+    background:rgba(232,196,104,0.16);
+  }
+  .book-header::before{width:150px;height:150px;top:-60px;right:-50px;}
+  .book-header::after{width:100px;height:100px;bottom:-40px;left:-30px;background:rgba(111,168,201,0.18);}
+  .book-header-icon{font-size:2.4rem;display:block;margin-bottom:6px;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.3));}
+  .book-header h2{font-family:'Kalam',cursive;font-size:1.7rem;color:var(--chalk-yellow);margin-bottom:4px;position:relative;}
+  .book-header p.muted{color:rgba(255,255,255,0.82);position:relative;margin:2px 0;}
+
+  .book-section-title{
+    display:flex;align-items:center;gap:9px;
+    font-family:'Kalam',cursive;font-size:1.2rem;font-weight:700;color:var(--ink);
+    padding-bottom:8px;margin-top:8px;
+    border-bottom:3px solid var(--chalk-yellow);
+  }
+  .book-section-title.accent-yellow{border-bottom-color:var(--chalk-yellow);}
+  .book-section-title.accent-blue{border-bottom-color:var(--chalk-blue);}
+  .book-section-title.accent-green{border-bottom-color:var(--chalk-green);}
+  .book-section-title.accent-red{border-bottom-color:var(--chalk-red);}
+  .book-section-emoji{font-size:1.3rem;}
+
+  .book-footnote{
+    margin-top:16px;background:#fdf3da;border:1px dashed var(--chalk-yellow);
+    border-radius:10px;padding:12px 14px;font-size:0.85rem;color:#5c5340;
+  }
+
+  .book-table{width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem;min-width:520px;background:#fff;}
+  .book-table thead th{
+    background:var(--ink);color:var(--chalk-yellow);padding:11px 10px;text-align:left;
+    font-size:0.78rem;text-transform:uppercase;letter-spacing:0.02em;
+  }
+  .book-table tbody td{padding:10px;border-bottom:1px solid #eee;vertical-align:top;}
+  .book-table tbody tr:nth-child(even){background:#f7f5ee;}
+  .book-table tbody tr:hover{background:#fdf3da;}
+  .book-table td:first-child{text-align:center;font-weight:700;width:34px;color:#2f6b4d;}
+
+  .alphabet-grid{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-top:12px;
+  }
+  @media(min-width:640px){ .alphabet-grid{grid-template-columns:repeat(9,1fr);} }
+  .alpha-cell{
+    border-radius:10px;border:2px solid transparent;
+    text-align:center;padding:12px 4px;font-family:'JetBrains Mono',monospace;
+    box-shadow:0 3px 8px rgba(0,0,0,0.08);
+    transition:transform .15s ease;
+  }
+  .alpha-cell:hover{transform:translateY(-3px) scale(1.04);}
+  .alpha-cell span{display:block;font-size:1.25rem;font-weight:700;}
+  .alpha-cell small{opacity:0.7;}
+  .alphabet-grid .alpha-cell:nth-child(4n+1){background:#fdf3da;border-color:#f0dca3;color:#8a6d1f;}
+  .alphabet-grid .alpha-cell:nth-child(4n+2){background:#e7f2f8;border-color:#bcdcec;color:#2c5f78;}
+  .alphabet-grid .alpha-cell:nth-child(4n+3){background:#ecf6ec;border-color:#c7e5c7;color:#3a6b3a;}
+  .alphabet-grid .alpha-cell:nth-child(4n+4){background:#fbeae7;border-color:#f0c4bd;color:#a04336;}
+
+  .word-grid{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px;
+  }
+  @media(min-width:520px){ .word-grid{grid-template-columns:repeat(4,1fr);} }
+  .word-cell{
+    background:#fff;border-radius:10px;border-top:3px solid transparent;
+    padding:10px 8px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.08);
+    transition:transform .15s ease;
+  }
+  .word-cell:hover{transform:translateY(-3px);}
+  .word-cell .word-en{font-family:'JetBrains Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--ink);}
+  .word-cell .word-so{font-size:0.74rem;color:#8a8272;margin-top:3px;}
+  .word-grid .word-cell:nth-child(4n+1){border-top-color:var(--chalk-yellow);}
+  .word-grid .word-cell:nth-child(4n+2){border-top-color:var(--chalk-blue);}
+  .word-grid .word-cell:nth-child(4n+3){border-top-color:var(--chalk-green);}
+  .word-grid .word-cell:nth-child(4n+4){border-top-color:var(--chalk-red);}
   table{width:100%;border-collapse:collapse;font-size:0.88rem;}
   th{text-align:right;font-family:'Kalam',cursive;font-size:0.95rem;border-bottom:2px solid var(--ink);padding:8px 6px;}
   td{padding:9px 6px;border-bottom:1px solid #ddd7c4;vertical-align:top;}
-  .student-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #ddd7c4;}
+  .student-row{display:flex;align-items:flex-start;gap:10px;padding:11px 4px;border-bottom:1px solid #ddd7c4;border-radius:8px;transition:background .12s ease;}
+  .student-row:hover{background:rgba(36,59,52,0.035);}
   .insp-item-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #ddd7c4;}
   .insp-item-row input[type=text]{flex:1 1 200px;min-width:160px;}
   .insp-item-row select{flex:0 0 auto;width:auto;min-width:150px;}
@@ -239,7 +352,7 @@
     border:2px solid #ddd7c4;background:#fff;font-size:0.85rem;font-weight:600;color:#6b6552;
     transition:all .12s ease;user-select:none;
   }
-  .rating-btn:hover{border-color:#bdb490;}
+  .rating-btn:hover{border-color:#bdb490;transform:translateY(-1px);}
   .rating-btn.rb-good.active{background:#e4ede0;border-color:#3c7a4d;color:#2e5e3a;}
   .rating-btn.rb-average.active{background:#fff3d6;border-color:#c99a2e;color:#8a6c1a;}
   .rating-btn.rb-weak.active{background:#f6dede;border-color:#b5453f;color:#8a2f2f;}
@@ -248,36 +361,38 @@
   }
   .rating-progress-fill{height:100%;background:var(--chalk-green,#3c7a4d);transition:width .2s ease;}
   .student-row:last-child{border-bottom:none;}
-  .student-row input[type=checkbox]{width:20px;height:20px;margin-top:4px;}
+  .student-row input[type=checkbox]{width:20px;height:20px;margin-top:4px;accent-color:var(--ink);}
   .student-name{font-weight:600;}
   .student-meta{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:#8a8370;}
   .tally{display:inline-flex;align-items:flex-end;gap:2px;height:20px;}
   .tally i{display:inline-block;width:2px;height:16px;background:var(--chalk-red);transform:rotate(-8deg);border-radius:1px;}
   .tally i.cross{width:20px;height:2px;transform:rotate(28deg) translate(2px,7px);}
   .flagged-item{
-    background:#fff;border-radius:6px;padding:12px 14px;margin-bottom:10px;
-    border:1px solid #e2ddc9;
+    background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:10px;
+    border:1px solid #e2ddc9;box-shadow:0 3px 10px rgba(0,0,0,0.05);
+    transition:box-shadow .15s ease;
   }
+  .flagged-item:hover{box-shadow:0 6px 16px rgba(0,0,0,0.09);}
   .flagged-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
   .flagged-name{font-family:'Kalam',cursive;font-size:1.15rem;font-weight:700;}
   .detail-list{margin:8px 0 0;padding-right:0;list-style:none;padding-left:0;}
   .detail-list li{font-size:0.85rem;padding:4px 0;border-top:1px dashed #e2ddc9;}
   .detail-list li b{color:var(--chalk-red);}
   .locked-banner{
-    background:#fff7e0;border:1px dashed var(--chalk-red);border-radius:6px;
+    background:#fff7e0;border:1px dashed var(--chalk-red);border-radius:9px;
     padding:12px 14px;margin-bottom:14px;font-size:0.88rem;color:#7a4a20;
   }
   .toast{
     position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-    background:var(--ink);color:var(--chalk-yellow);padding:12px 22px;border-radius:8px;
+    background:var(--ink);color:var(--chalk-yellow);padding:12px 22px;border-radius:10px;
     font-size:0.9rem;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:999;
     opacity:0;pointer-events:none;transition:opacity .25s ease, bottom .25s ease;
   }
   .toast.show{opacity:1;bottom:30px;}
-  .back-link{color:var(--chalk-dim);font-size:0.85rem;cursor:pointer;display:inline-block;margin-bottom:14px;}
+  .back-link{color:var(--chalk-dim);font-size:0.85rem;cursor:pointer;display:inline-block;margin-bottom:14px;transition:color .12s ease;}
   .back-link:hover{color:var(--chalk-yellow);}
-  .progress-bar{height:8px;border-radius:4px;background:#e2ddc9;overflow:hidden;margin-top:6px;}
-  .progress-fill{height:100%;background:var(--chalk-green);}
+  .progress-bar{height:8px;border-radius:5px;background:#e2ddc9;overflow:hidden;margin-top:6px;}
+  .progress-fill{height:100%;background:var(--chalk-green);transition:width .2s ease;}
   .hidden{display:none !important;}
   @media(max-width:520px){
     header h1{font-size:1.5rem;}
@@ -727,21 +842,44 @@
     <span class="back-link" onclick="logout()">← Ka bax</span>
     <div class="card">
       <h2>Salaam, <span id="t-welcome-name"></span></h2>
-      <p class="muted">Dooro fasalka, section-ka, iyo maadada aad warbixin u soo gudbinayso.</p>
-      <label>Fasalka</label>
-      <select id="sel-fasal"></select>
-      <label>Section</label>
-      <select id="sel-section"></select>
-      <label>Maadada</label>
-      <input type="text" id="sel-maadada" list="maadada-list" placeholder="Tusaale: Xisaabta">
-      <datalist id="maadada-list"></datalist>
-      <div class="center" style="margin-top:18px;">
-        <button class="btn-primary" onclick="openBatch()">✍️ Warbixinta Hoosaynta →</button>
+    </div>
+
+    <div class="tabs" id="teacher-main-tabs">
+      <div class="tab active" data-tab="reports" onclick="switchTeacherTab('reports')">📋 Warbixinta Ardayda</div>
+      <div class="tab" data-tab="books" onclick="switchTeacherTab('books')">📚 Buugta</div>
+    </div>
+
+    <div id="t-tab-reports">
+      <div class="card">
+        <p class="muted">Dooro fasalka, section-ka, iyo maadada aad warbixin u soo gudbinayso.</p>
+        <label>Fasalka</label>
+        <select id="sel-fasal"></select>
+        <label>Section</label>
+        <select id="sel-section"></select>
+        <label>Maadada</label>
+        <input type="text" id="sel-maadada" list="maadada-list" placeholder="Tusaale: Xisaabta">
+        <datalist id="maadada-list"></datalist>
+        <div class="center" style="margin-top:18px;">
+          <button class="btn-primary" onclick="openBatch()">✍️ Warbixinta Hoosaynta →</button>
+        </div>
+        <hr style="border:none;border-top:1px dashed #7a8a80;margin:20px 0;">
+        <p class="muted center" style="margin-bottom:8px;">Ama, u gudbi warbixinta toddobaadlaha ee Qur'aanka (maadada looma baahna):</p>
+        <div class="center">
+          <button class="btn-primary" style="background:#2b6f4f;" onclick="openQuranBatch()">📖 Warbixinta Quraanka Asbuucii →</button>
+        </div>
       </div>
-      <hr style="border:none;border-top:1px dashed #7a8a80;margin:20px 0;">
-      <p class="muted center" style="margin-bottom:8px;">Ama, u gudbi warbixinta toddobaadlaha ee Qur'aanka (maadada looma baahna):</p>
-      <div class="center">
-        <button class="btn-primary" style="background:#2b6f4f;" onclick="openQuranBatch()">📖 Warbixinta Quraanka Asbuucii →</button>
+    </div>
+
+    <div id="t-tab-books" class="hidden">
+      <div id="teacher-books-list">
+        <div class="card">
+          <h3>📚 Buugaagta laguu Furay</h3>
+          <div id="teacher-books-grid"></div>
+        </div>
+      </div>
+      <div id="teacher-book-detail" class="hidden">
+        <span class="back-link" onclick="backToTeacherBooksList()">← Dib ugu noqo Buugaagta</span>
+        <div class="card" id="teacher-book-content"></div>
       </div>
     </div>
   </div>
@@ -1121,9 +1259,88 @@ let TEACHERS = {};   // id -> {name, pin}
 let SUBMISSIONS = {}; // teacherId -> batchKey -> {...}
 let QURAN_SUBMISSIONS = {}; // teacherId -> batchKey -> {fasal, section, teacherName, submittedAt, students:{sid:{name,days}}}
 let INSPECTIONS = {}; // teacherId -> key -> {teacherName, date, subjects:[{maadada, items, notes}]}
+let TEACHER_BOOKS = {}; // teacherId -> {bookId: true}
 let currentTeacher = null; // {id, name}
 let currentBatch = null; // {fasal, section, maadada, key}
 let currentQuranBatch = null; // {fasal, section, key}
+
+// ---------- Curriculum Books (Buugta) ----------
+const BOOKS = [
+  { id:'math_g2', icon:'🔢', title:'Manhajka Xisaabta', subtitle:'Qaybta Labaad · Fasalka 2aad', render: renderMathBookG2 },
+  { id:'eng_g2', icon:'📘', title:'Buugga Ingiriisiga', subtitle:'Fasalka 2aad', render: renderEnglishBookG2 }
+];
+function renderMathBookG2(){
+  const rows = [
+    ['1','Akhriska iyo Qorista Tirooyinka: 1 ilaa 999','Bil 1 (Hal Bil)','Xafidid iyo Qoraal'],
+    ['2','Isku-darka Fudud, tusaale: 456+546','2 Asbuuc','Xisaabinta Farriimaha'],
+    ['3','Ka-jarista Fudud, sida isku-darka','2 Asbuuc','Xisaabinta Farriimaha'],
+    ['4','Isku-darka Adag (Halqadasho)','Bil 1 iyo Badh','Xisaabinta Farriimaha'],
+    ['5','Ka-jarista Adag (Halqadasho)','Bil 1 iyo Badh','Xisaabinta Farriimaha'],
+    ['6','Akhriska sida: Ahaad, Tobanaan, Boqolaal, Kunaan','15 Maalmood','Fahamka iyo Ku-celcelinta'],
+    ['7','Magacyada Qaababka, tusaale: Afar-gees, Saddex-gees, Goobo','15 Maalmood','Sawirka iyo Xafidid'],
+    ['8','Ku-dhufashada Fudud: Hal Lambar Oo Kaliya','15 Maalmood','Xafidid iyo Qaacido'],
+    ['—','Waxyaabaha kale ee buugga manhajka wasaarada ku yaalla','15 Maalmood','Ka fiiri buugga wasaaradda'],
+    ['9',"Dib-u-eegis (Maraaji')",'15 Maalmood','Fahamka iyo Ku-celcelinta']
+  ];
+  return `
+    <div class="book-content book-content-math">
+      <div class="book-header">
+        <span class="book-header-icon">🔢</span>
+        <h2>Silsiladda Xisaabta</h2>
+        <p class="muted">Qaybta Labaad — Fasalka 2aad · Al-Hekma Primary and Secondary School</p>
+        <p class="muted">Garowe — Puntland — Somalia</p>
+      </div>
+      <div style="overflow-x:auto;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.12);">
+        <table class="book-table">
+          <thead><tr><th>Lr</th><th>Waxa Ardayda La Baro</th><th>Wakhtiga</th><th>Habka</th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`<tr><td>${r[0]}</td><td>${escapeHtml(r[1])}</td><td>${escapeHtml(r[2])}</td><td>${escapeHtml(r[3])}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <p class="book-footnote"><b>💡 Fiiro Gaar Ah:</b> Erayada sida (Halqadasho) waxay ka socdaan qoraalkii asalka ahaa ee dugsiga.</p>
+    </div>`;
+}
+function renderEnglishBookG2(){
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const words3 = [['boy','wiil'],['man','nin'],['cat','bisad'],['dog','eey'],['sun','qorrax'],['cup','koob'],['pen','qalin'],['box','sanduuq'],['bag','boorso'],['bed','sariir'],
+    ['red','guduud'],['big','weyn'],['hot','kulul'],['run','orod'],['sit','fadhiiso'],['top','sare'],['cow','sac'],['hen','dooro'],['egg','ukun'],['ear','dheg'],
+    ['eye','il'],['arm','gacan'],['leg','lug'],['hat','koofiyad'],['mat','sali'],['rat','jiir'],['bat','fiidmeer'],['fan','marwaxad'],['jam','murabbo'],['jar','weel'],
+    ['key','fure'],['kid','ilmo'],['lip','bushin'],['log','qori'],['mud','dhoobo'],['net','shabag'],['owl','guumeys'],['pig','doofaar'],['rug','gogol'],['van','gaari']];
+  const words4 = [['book','buug'],['desk','miis'],['door','albaab'],['fish','kalluun'],['frog','rah'],['girl','gabadh'],['hand','gacan'],['hair','timo'],['head','madax'],['home','guri'],
+    ['jump','bood'],['king','boqor'],['lion','libaax'],['milk','caano'],['moon','dayax'],['nose','san'],['rain','roob'],['star','xiddig'],['tree','geed'],['wind','dabayl']];
+  const verbs3 = [['run','orod'],['hop','bood'],['sit','fadhiiso'],['eat','cun'],['cry','ooy'],['fly','duul'],['dig','qod'],['hit','garaac'],['cut','jar'],['put','dhig'],
+    ['get','hel'],['let','ogolow'],['see','arag'],['buy','iibso'],['pay','bixi'],['win','guulayso'],['try','isku day'],['dry','qallaji'],['ask','waydii'],['add','ku dar'],
+    ['mix','walaaq'],['fix','hagaaji'],['hug','qabo'],['nod','madax lul'],['jog','orod tartiib']];
+  const wordCell = ([w,so]) => `<div class="word-cell"><div class="word-en">${w}</div><div class="word-so">${so}</div></div>`;
+  return `
+    <div class="book-content book-content-eng">
+      <div class="book-header">
+        <span class="book-header-icon">📘</span>
+        <h2>My First English Book</h2>
+        <p class="muted">Grade 2 · Fasalka 2aad — Buugga Ingiriisiga ee Fasalka 2aad</p>
+        <p class="muted">Al-Xikma School</p>
+      </div>
+
+      <div class="book-section-title accent-yellow"><span class="book-section-emoji">🔤</span> The Alphabet (A B C)</div>
+      <p class="muted">Xarfaha Ingiriisiga — Trace and write each letter on your own paper.</p>
+      <div class="alphabet-grid">
+        ${alphabet.map(l=>`<div class="alpha-cell"><span>${l}</span><small>${l.toLowerCase()}</small></div>`).join('')}
+      </div>
+
+      <div class="book-section-title accent-blue" style="margin-top:26px;"><span class="book-section-emoji">🔡</span> 40 Three-Letter Words</div>
+      <p class="muted">40 Eray oo ah 3 Xaraf (sida boy, man)</p>
+      <div class="word-grid">${words3.map(wordCell).join('')}</div>
+
+      <div class="book-section-title accent-green" style="margin-top:26px;"><span class="book-section-emoji">📗</span> 20 Four-Letter Words</div>
+      <p class="muted">20 Eray oo ah 4 Xaraf</p>
+      <div class="word-grid">${words4.map(wordCell).join('')}</div>
+
+      <div class="book-section-title accent-red" style="margin-top:26px;"><span class="book-section-emoji">🏃</span> 25 Three-Letter Verbs</div>
+      <p class="muted">25 Ficil oo ah 3 Xaraf</p>
+      <div class="word-grid">${verbs3.map(wordCell).join('')}</div>
+    </div>`;
+}
 let currentInspection = null; // {teacherId, teacherName, m1, m2}
 
 // Checklist-ka Taftiishka Maamulka: "buug" = waxaa lagu baarayaa buugta, "arday" = waxaa lagu ogaanayaa su'aal ardayda
@@ -1204,6 +1421,11 @@ function attachFirebaseListeners(){
   db.child('submissions').on('value', snap=>{ SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
   db.child('quranWeekly').on('value', snap=>{ QURAN_SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
   db.child('inspections').on('value', snap=>{ INSPECTIONS = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden')){ populateInspectMonthFilter(); renderInspectionRanking(); renderInspectionMatrix(); renderInspectionHistory(); } });
+  db.child('teacherBooks').on('value', snap=>{
+    TEACHER_BOOKS = snap.val() || {};
+    if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList();
+    if(currentTeacher && !document.getElementById('view-teacher-select').classList.contains('hidden') && !document.getElementById('t-tab-books').classList.contains('hidden')) renderTeacherBooksList();
+  });
   db.child('config/adminPin').once('value', snap=>{ if(!snap.exists()) db.child('config/adminPin').set('1234'); });
   db.child('inspectionItems').once('value', snap=>{
     if(!snap.exists()){
@@ -1251,6 +1473,46 @@ function teacherLogin(){
   document.getElementById('t-welcome-name').textContent = t.name;
   populateFasalDropdown();
   showView('view-teacher-select');
+  switchTeacherTab('reports');
+}
+function switchTeacherTab(tab){
+  document.querySelectorAll('#teacher-main-tabs > .tab').forEach(el=>el.classList.toggle('active', el.dataset.tab===tab));
+  document.getElementById('t-tab-reports').classList.toggle('hidden', tab!=='reports');
+  document.getElementById('t-tab-books').classList.toggle('hidden', tab!=='books');
+  if(tab==='books'){
+    document.getElementById('teacher-books-list').classList.remove('hidden');
+    document.getElementById('teacher-book-detail').classList.add('hidden');
+    renderTeacherBooksList();
+  }
+}
+function renderTeacherBooksList(){
+  const el = document.getElementById('teacher-books-grid');
+  if(!el || !currentTeacher) return;
+  const access = TEACHER_BOOKS[currentTeacher.id] || {};
+  const allowed = BOOKS.filter(b=>access[b.id]);
+  if(allowed.length===0){
+    el.innerHTML = '<p class="muted">Weli buug lagama furin akoonkaaga. La xiriir maamulka.</p>';
+    return;
+  }
+  el.innerHTML = allowed.map(b=>`
+    <div class="book-card" onclick="openTeacherBook('${b.id}')">
+      <span class="book-icon">${b.icon}</span>
+      <div>
+        <div class="book-title">${escapeHtml(b.title)}</div>
+        <div class="book-subtitle">${escapeHtml(b.subtitle)}</div>
+      </div>
+    </div>`).join('');
+}
+function openTeacherBook(bookId){
+  const book = BOOKS.find(b=>b.id===bookId);
+  if(!book) return;
+  document.getElementById('teacher-books-list').classList.add('hidden');
+  document.getElementById('teacher-book-detail').classList.remove('hidden');
+  document.getElementById('teacher-book-content').innerHTML = book.render();
+}
+function backToTeacherBooksList(){
+  document.getElementById('teacher-book-detail').classList.add('hidden');
+  document.getElementById('teacher-books-list').classList.remove('hidden');
 }
 
 // ---------- Fasal / Section dropdowns ----------
@@ -1968,6 +2230,16 @@ function renderTeacherList(){
         <button class="btn-ghost btn-sm" onclick="toggleEditTeacher('${id}')">✏️ Wax ka beddel</button>
         <button class="btn-danger btn-sm" onclick="deleteTeacher('${id}')">Tirtir</button>
       </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">
+        <div class="student-meta" style="margin-bottom:6px;">📚 Buugaha loo furay:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;">
+          ${BOOKS.map(b=>`
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;">
+              <input type="checkbox" ${(TEACHER_BOOKS[id] && TEACHER_BOOKS[id][b.id]) ? 'checked' : ''} onchange="toggleTeacherBook('${id}','${b.id}', this.checked)">
+              ${b.icon} ${escapeHtml(b.title)}
+            </label>`).join('')}
+        </div>
+      </div>
       <div id="t-edit-${id}" class="hidden" style="margin-top:10px;">
         <div class="row">
           <div>
@@ -1989,6 +2261,9 @@ function renderTeacherList(){
         </div>
       </div>
     </div>`).join('');
+}
+function toggleTeacherBook(teacherId, bookId, isOn){
+  db.child('teacherBooks/'+teacherId+'/'+bookId).set(!!isOn).then(()=>toast(isOn ? 'Buugga waa loo furay macalinka.' : 'Buugga waa laga xiray macalinka.'));
 }
 function toggleEditTeacher(id){
   const el = document.getElementById('t-edit-'+id);
