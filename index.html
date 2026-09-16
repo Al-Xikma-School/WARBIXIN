@@ -1231,6 +1231,34 @@
           <button class="btn-primary btn-sm" onclick="addInspectionItem()">+ Ku dar Qodob</button>
         </div>
       </div>
+
+      <div class="card">
+        <h3>📚 Maamulka Buugaagta</h3>
+        <p class="muted">Halkan waxaad ku soo geli kartaa buugag cusub (manhaj, PDF, ama sawir), oo aad u dooratid Qaybta ay u gaaraan — Iskuulka ama Qur'aanka. Buugga marka la soo geliyo, wuxuu ka soo muuqan doonaa kaliya qaybta la doortay.</p>
+        <label>Cinwaanka Buugga</label>
+        <input type="text" id="new-book-title" placeholder="Tusaale: Manhajka Xisaabta — Fasalka 3aad">
+        <div class="row">
+          <div>
+            <label>Qaybta</label>
+            <select id="new-book-dept">
+              <option value="iskuul">🏫 Qaybta Iskuulka</option>
+              <option value="quraan">📖 Qaybta Qur'aanka</option>
+            </select>
+          </div>
+          <div>
+            <label>Emoji (ikhtiyaari)</label>
+            <input type="text" id="new-book-icon" placeholder="📄" maxlength="4">
+          </div>
+        </div>
+        <label>Faylka (PDF ama Sawir)</label>
+        <input type="file" id="new-book-file" accept="application/pdf,image/*">
+        <p class="muted" style="margin-top:4px;">Ugu badnaan 5MB.</p>
+        <div class="center" style="margin-top:14px;">
+          <button class="btn-primary" onclick="uploadNewBook()">⬆️ Ku Dar Buugga</button>
+        </div>
+        <hr style="border:none;border-top:1px dashed #ddd7c4;margin:20px 0;">
+        <div id="books-settings-list"></div>
+      </div>
     </div>
       </div><!-- /admin-content -->
     </div><!-- /admin-layout -->
@@ -1260,15 +1288,57 @@ let SUBMISSIONS = {}; // teacherId -> batchKey -> {...}
 let QURAN_SUBMISSIONS = {}; // teacherId -> batchKey -> {fasal, section, teacherName, submittedAt, students:{sid:{name,days}}}
 let INSPECTIONS = {}; // teacherId -> key -> {teacherName, date, subjects:[{maadada, items, notes}]}
 let TEACHER_BOOKS = {}; // teacherId -> {bookId: true}
+let BOOKS_LIBRARY = {}; // bookId -> {title, subtitle, icon, dept, kind:'builtin'|'upload', fileName, fileType, fileData}
+const booksLibRef = firebase.database().ref('booksLibrary'); // global, NOT department-scoped — one shared library, filtered by each book's dept
+booksLibRef.on('value', snap=>{
+  BOOKS_LIBRARY = snap.val() || {};
+  if(currentTeacher && !document.getElementById('view-teacher-select').classList.contains('hidden') && !document.getElementById('t-tab-books').classList.contains('hidden')) renderTeacherBooksList();
+  if(db && !document.getElementById('view-admin').classList.contains('hidden')){ renderTeacherList(); renderBooksSettingsList(); }
+});
+seedBuiltinBooks();
 let currentTeacher = null; // {id, name}
 let currentBatch = null; // {fasal, section, maadada, key}
 let currentQuranBatch = null; // {fasal, section, key}
 
 // ---------- Curriculum Books (Buugta) ----------
-const BOOKS = [
-  { id:'math_g2', icon:'🔢', title:'Manhajka Xisaabta', subtitle:'Qaybta Labaad · Fasalka 2aad', render: renderMathBookG2 },
-  { id:'eng_g2', icon:'📘', title:'Buugga Ingiriisiga', subtitle:'Fasalka 2aad', render: renderEnglishBookG2 }
-];
+function seedBuiltinBooks(){
+  booksLibRef.once('value', snap=>{
+    const val = snap.val() || {};
+    const seed = {};
+    if(!val.math_g2) seed.math_g2 = {icon:'🔢', title:'Manhajka Xisaabta', subtitle:'Qaybta Labaad · Fasalka 2aad', dept:'iskuul', kind:'builtin'};
+    if(!val.eng_g2) seed.eng_g2 = {icon:'📘', title:'Buugga Ingiriisiga', subtitle:'Fasalka 2aad', dept:'iskuul', kind:'builtin'};
+    if(Object.keys(seed).length) booksLibRef.update(seed);
+  });
+}
+function getVisibleBooks(){
+  return Object.entries(BOOKS_LIBRARY)
+    .filter(([id,b])=> b.dept===CURRENT_DEPT)
+    .map(([id,b])=>({id, ...b}));
+}
+function renderBookContent(book){
+  if(book.id==='math_g2') return renderMathBookG2();
+  if(book.id==='eng_g2') return renderEnglishBookG2();
+  return renderUploadedBookViewer(book);
+}
+function renderUploadedBookViewer(book){
+  const isPdf = (book.fileType||'').includes('pdf');
+  const isImg = (book.fileType||'').startsWith('image/');
+  let viewer = `<p class="muted">Nooca faylkan lama muujin karo halkan — riix si aad u soo dejiso.</p>`;
+  if(isPdf) viewer = `<iframe src="${book.fileData}" style="width:100%;height:70vh;border:1px solid #ddd;border-radius:10px;"></iframe>`;
+  else if(isImg) viewer = `<img src="${book.fileData}" style="max-width:100%;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,0.15);">`;
+  return `
+    <div class="book-content">
+      <div class="book-header">
+        <span class="book-header-icon">${book.icon || '📄'}</span>
+        <h2>${escapeHtml(book.title)}</h2>
+        ${book.subtitle ? `<p class="muted">${escapeHtml(book.subtitle)}</p>` : ''}
+      </div>
+      ${viewer}
+      <div class="center" style="margin-top:16px;">
+        <a href="${book.fileData}" download="${escapeHtml(book.fileName || book.title)}" class="btn-primary" style="text-decoration:none;display:inline-block;">⬇️ Soo Dejiso Faylka</a>
+      </div>
+    </div>`;
+}
 function renderMathBookG2(){
   const rows = [
     ['1','Akhriska iyo Qorista Tirooyinka: 1 ilaa 999','Bil 1 (Hal Bil)','Xafidid iyo Qoraal'],
@@ -1489,26 +1559,26 @@ function renderTeacherBooksList(){
   const el = document.getElementById('teacher-books-grid');
   if(!el || !currentTeacher) return;
   const access = TEACHER_BOOKS[currentTeacher.id] || {};
-  const allowed = BOOKS.filter(b=>access[b.id]);
+  const allowed = getVisibleBooks().filter(b=>access[b.id]);
   if(allowed.length===0){
     el.innerHTML = '<p class="muted">Weli buug lagama furin akoonkaaga. La xiriir maamulka.</p>';
     return;
   }
   el.innerHTML = allowed.map(b=>`
     <div class="book-card" onclick="openTeacherBook('${b.id}')">
-      <span class="book-icon">${b.icon}</span>
+      <span class="book-icon">${b.icon || '📄'}</span>
       <div>
         <div class="book-title">${escapeHtml(b.title)}</div>
-        <div class="book-subtitle">${escapeHtml(b.subtitle)}</div>
+        <div class="book-subtitle">${escapeHtml(b.subtitle || '')}</div>
       </div>
     </div>`).join('');
 }
 function openTeacherBook(bookId){
-  const book = BOOKS.find(b=>b.id===bookId);
+  const book = BOOKS_LIBRARY[bookId];
   if(!book) return;
   document.getElementById('teacher-books-list').classList.add('hidden');
   document.getElementById('teacher-book-detail').classList.remove('hidden');
-  document.getElementById('teacher-book-content').innerHTML = book.render();
+  document.getElementById('teacher-book-content').innerHTML = renderBookContent({id:bookId, ...book});
 }
 function backToTeacherBooksList(){
   document.getElementById('teacher-book-detail').classList.add('hidden');
@@ -1749,7 +1819,7 @@ function switchAdminTab(tab){
   if(tab==='teachers') renderTeacherList();
   if(tab==='inspect'){ populateInspectTeacherDropdown(); populateInspectMonthFilter(); renderInspectionRanking(); renderInspectionMatrix(); renderInspectionHistory(); }
   if(tab==='meetings'){ if(window.QoraalMobileApp) QoraalMobileApp.init(); }
-  if(tab==='settings'){ renderInspectionItemsSettings(); }
+  if(tab==='settings'){ renderInspectionItemsSettings(); renderBooksSettingsList(); }
 }
 
 // ---------- Dashboard: ranked flagged students ----------
@@ -2233,11 +2303,11 @@ function renderTeacherList(){
       <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">
         <div class="student-meta" style="margin-bottom:6px;">📚 Buugaha loo furay:</div>
         <div style="display:flex;flex-wrap:wrap;gap:14px;">
-          ${BOOKS.map(b=>`
+          ${getVisibleBooks().length ? getVisibleBooks().map(b=>`
             <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;">
               <input type="checkbox" ${(TEACHER_BOOKS[id] && TEACHER_BOOKS[id][b.id]) ? 'checked' : ''} onchange="toggleTeacherBook('${id}','${b.id}', this.checked)">
-              ${b.icon} ${escapeHtml(b.title)}
-            </label>`).join('')}
+              ${b.icon || '📄'} ${escapeHtml(b.title)}
+            </label>`).join('') : '<span class="muted">Weli buug looma soo gelin qaybtan.</span>'}
         </div>
       </div>
       <div id="t-edit-${id}" class="hidden" style="margin-top:10px;">
@@ -2985,6 +3055,50 @@ function updateInspectionItem(id, field, value){
 function deleteInspectionItem(id){
   if(!confirm('Ma hubtaa inaad tirtirto qodobkan? Taftiishyadii hore ee isticmaalay qodobkan way sii jirayaan sida ay ahaayeen.')) return;
   db.child('inspectionItems/'+id).remove().then(()=>toast('Qodobka waa la tirtiray.'));
+}
+
+// ---------- Settings: Books Library ----------
+function uploadNewBook(){
+  const titleInp = document.getElementById('new-book-title');
+  const deptSel = document.getElementById('new-book-dept');
+  const iconInp = document.getElementById('new-book-icon');
+  const fileInp = document.getElementById('new-book-file');
+  const title = titleInp.value.trim();
+  const file = fileInp.files[0];
+  if(!title){ toast('Fadlan geli cinwaanka buugga.'); return; }
+  if(!file){ toast('Fadlan dooro fayl aad soo geli rabto.'); return; }
+  if(file.size > 5*1024*1024){ toast('Faylku waa ka weyn yahay 5MB — dooro fayl ka yar.'); return; }
+  const reader = new FileReader();
+  reader.onload = function(){
+    const key = booksLibRef.push().key;
+    booksLibRef.child(key).set({
+      title, subtitle:'', icon: iconInp.value.trim() || '📄',
+      dept: deptSel.value, kind:'upload',
+      fileName: file.name, fileType: file.type, fileData: reader.result
+    }).then(()=>{
+      titleInp.value=''; iconInp.value=''; fileInp.value='';
+      toast('✅ Buugga waa la soo geliyay.');
+    }).catch(()=> toast('Khalad ayaa dhacay — faylku waa ka weyn yahay xadka la ogolyahay.'));
+  };
+  reader.readAsDataURL(file);
+}
+function renderBooksSettingsList(){
+  const el = document.getElementById('books-settings-list');
+  if(!el) return;
+  const entries = Object.entries(BOOKS_LIBRARY);
+  if(entries.length===0){ el.innerHTML = '<p class="muted">Weli buug lama soo gelin.</p>'; return; }
+  el.innerHTML = entries.map(([id,b])=>`
+    <div class="student-row">
+      <div style="flex:1;">
+        <div class="student-name">${b.icon || '📄'} ${escapeHtml(b.title)}</div>
+        <div class="student-meta">${b.dept==='iskuul' ? '🏫 Qaybta Iskuulka' : '📖 Qaybta Qur\u2019aanka'}${b.kind==='builtin' ? ' · Buug Aasaasi ah' : ''}</div>
+      </div>
+      <button class="btn-danger btn-sm" onclick="deleteBook('${id}')">🗑️ Tirtir</button>
+    </div>`).join('');
+}
+function deleteBook(id){
+  if(!confirm('Ma hubtaa inaad tirtirto buuggan? Macallimiinta loo furay mar dambe ma heli doonaan.')) return;
+  booksLibRef.child(id).remove().then(()=>toast('Buugga waa la tirtiray.'));
 }
 
 // ---------- Utils ----------
