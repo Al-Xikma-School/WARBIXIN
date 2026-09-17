@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -826,10 +827,10 @@
     <span class="back-link" onclick="showView('view-role')">← Dib u noqo</span>
     <div class="card">
       <h2>Gelitaanka Macallinka</h2>
-      <label>Magaca Macallinka</label>
-      <select id="t-name"></select>
-      <label>PIN-kaaga</label>
-      <input type="password" id="t-pin" placeholder="••••">
+      <label>Email-kaaga</label>
+      <input type="text" id="t-email" autocapitalize="off" autocomplete="username" placeholder="macalinka@kulmiye.app">
+      <label>Password-kaaga</label>
+      <input type="password" id="t-pass" autocomplete="current-password" placeholder="••••••••">
       <div class="center" style="margin-top:18px;">
         <button class="btn-primary" onclick="teacherLogin()">Gal</button>
       </div>
@@ -910,14 +911,30 @@
   <!-- Admin login -->
   <div id="view-admin-login" class="hidden">
     <span class="back-link" onclick="showView('view-role')">← Dib u noqo</span>
-    <div class="card">
+
+    <div class="card" id="admin-login-card">
       <h2>Gelitaanka Maamulka</h2>
-      <label>PIN-ka Maamulka</label>
-      <input type="password" id="a-pin" placeholder="••••">
+      <label>Email-kaaga</label>
+      <input type="text" id="a-email" autocapitalize="off" autocomplete="username" placeholder="maamule@kulmiye.app">
+      <label>Password-kaaga</label>
+      <input type="password" id="a-pass" autocomplete="current-password" placeholder="••••••••">
       <div class="center" style="margin-top:18px;">
         <button class="btn-primary" onclick="adminLogin()">Gal</button>
       </div>
       <p class="muted center" id="a-login-err"></p>
+    </div>
+
+    <div class="card hidden" id="admin-setup-card">
+      <h2>🔐 Samee Maamulka Koowaad</h2>
+      <p class="muted">Qaybtan weli malaha maamule. Samee account-ka maamulka koowaad ee qaybtan.</p>
+      <label>Email</label>
+      <input type="text" id="a-setup-email" autocapitalize="off" autocomplete="username" placeholder="maamule@kulmiye.app">
+      <label>Password (ugu yaraan 6 xaraf)</label>
+      <input type="password" id="a-setup-pass" autocomplete="new-password" placeholder="••••••••">
+      <div class="center" style="margin-top:18px;">
+        <button class="btn-primary" onclick="createFirstAdmin()">Samee Maamulka</button>
+      </div>
+      <p class="muted center" id="a-setup-err"></p>
     </div>
   </div>
 
@@ -1094,8 +1111,12 @@
             <input type="text" id="new-t-name">
           </div>
           <div>
-            <label>PIN (4 lambar)</label>
-            <input type="text" id="new-t-pin" maxlength="8">
+            <label>Email-ka Macallinka</label>
+            <input type="text" id="new-t-email" autocapitalize="off" placeholder="macalinka@kulmiye.app">
+          </div>
+          <div>
+            <label>Password (ugu yaraan 6 xaraf)</label>
+            <input type="password" id="new-t-pass">
           </div>
           <div>
             <label>Telefoonka (WhatsApp)</label>
@@ -1105,6 +1126,7 @@
         <div style="margin-top:12px;">
           <button class="btn-primary btn-sm" onclick="addTeacher()">+ Ku dar Macalin</button>
         </div>
+        <p class="muted" id="add-teacher-err"></p>
       </div>
       <div class="card">
         <h3>Liiska Macallimiinta</h3>
@@ -1211,11 +1233,23 @@
 
     <div id="tab-settings" class="admin-tab hidden">
       <div class="card">
-        <h3>🔑 Beddel PIN-ka Maamulka</h3>
+        <h3>🔑 Beddel Password-kaaga</h3>
         <div class="row">
-          <input type="password" id="new-admin-pin" placeholder="PIN cusub">
-          <button class="btn-ghost btn-sm" onclick="changeAdminPin()">Beddel</button>
+          <input type="password" id="new-admin-pass" placeholder="Password cusub (ugu yaraan 6 xaraf)">
+          <button class="btn-ghost btn-sm" onclick="changeAdminPassword()">Beddel</button>
         </div>
+        <p class="muted" id="admin-pass-err"></p>
+      </div>
+
+      <div class="card">
+        <h3>👤 Ku dar Maamule Cusub</h3>
+        <p class="muted">Samee account maamul oo cusub oo qaybtan — waxay isla xaqiijin doonaan email + password marka ay galaan.</p>
+        <div class="row">
+          <input type="text" id="new-admin-email" placeholder="Email" autocapitalize="off">
+          <input type="password" id="new-admin-pass2" placeholder="Password (ugu yaraan 6 xaraf)">
+          <button class="btn-primary btn-sm" onclick="addAdmin()">+ Ku dar Maamule</button>
+        </div>
+        <p class="muted" id="add-admin-err"></p>
       </div>
 
       <div class="card">
@@ -1279,6 +1313,22 @@ const firebaseConfig = {
   measurementId: "G-P5HXEV3HNX"
 };
 firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary'); // lets admin create accounts without losing their own session
+const secondaryAuth = secondaryApp.auth();
+const usersRef = firebase.database().ref('users'); // global, NOT department-scoped: uid -> {role:'admin'|'teacher', dept, teacherKey, name}
+function firebaseAuthErrorMessage(err){
+  const map = {
+    'auth/email-already-in-use':'Email-kan horeba loo isticmaalay.',
+    'auth/invalid-email':'Email-ku sax ma aha.',
+    'auth/weak-password':'Password-ku waa kaan yar yahay (ugu yaraan 6 xaraf).',
+    'auth/user-not-found':'Email-kan lama helin.',
+    'auth/wrong-password':'Password-ku waa khalad.',
+    'auth/invalid-credential':'Email ama Password-ku waa khalad.',
+    'auth/too-many-requests':'Isku day badan ayaa la sameeyay — mar dambe isku day.'
+  };
+  return map[err.code] || ('Khalad ayaa dhacay: ' + err.message);
+}
 let db = null;          // department-scoped Firebase ref, set by selectDept()
 let CURRENT_DEPT = null; // 'iskuul' or 'quraan'
 
@@ -1440,9 +1490,40 @@ function showView(id){
   document.querySelectorAll('#app > div').forEach(d=>d.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
 }
-function logout(){ currentTeacher=null; currentBatch=null; showView('view-role'); }
+function logout(){ currentTeacher=null; currentBatch=null; auth.signOut(); showView('view-role'); }
 function batchKey(fasal, section, maadada){
   return (fasal+'__'+section+'__'+maadada).replace(/[.#$/\[\]]/g,'_');
+}
+
+// ---------- Auth-based session restore (Firebase Auth persists login on its own) ----------
+let pendingTeacherRestoreKey = null;
+auth.onAuthStateChanged(user=>{
+  if(!user){ pendingTeacherRestoreKey = null; return; }
+  usersRef.child(user.uid).once('value', snap=>{
+    const profile = snap.val();
+    if(!profile || !profile.dept || !profile.role) return; // unknown account — leave at dept-select
+    selectDept(profile.dept);
+    if(profile.role === 'admin'){
+      showView('view-admin');
+      switchAdminTab('dash');
+      renderStudentList(); renderTeacherList();
+    } else if(profile.role === 'teacher' && profile.teacherKey){
+      pendingTeacherRestoreKey = profile.teacherKey;
+      completeTeacherRestoreIfPending();
+    }
+  });
+});
+function completeTeacherRestoreIfPending(){
+  if(!pendingTeacherRestoreKey) return;
+  const t = TEACHERS[pendingTeacherRestoreKey];
+  if(!t) return; // teacher list not loaded yet — will retry when it loads
+  const id = pendingTeacherRestoreKey;
+  pendingTeacherRestoreKey = null;
+  currentTeacher = {id, name:t.name};
+  document.getElementById('t-welcome-name').textContent = t.name;
+  populateFasalDropdown();
+  showView('view-teacher-select');
+  switchTeacherTab('reports');
 }
 
 // ---------- Department selection ----------
@@ -1480,6 +1561,7 @@ function migrateLegacyIskuulData(){
 function backToDeptSelect(){
   if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); }
   db = null; CURRENT_DEPT = null; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
+  clearSession();
   if(window.QoraalMobileApp) QoraalMobileApp.reset();
   showView('view-dept');
 }
@@ -1487,7 +1569,7 @@ function backToDeptSelect(){
 // ---------- Firebase listeners ----------
 function attachFirebaseListeners(){
   db.child('students').on('value', snap=>{ STUDENTS = snap.val() || {}; populateFasalDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderStudentList(); });
-  db.child('teachers').on('value', snap=>{ TEACHERS = snap.val() || {}; populateTeacherDropdown(); populateInspectTeacherDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList(); });
+  db.child('teachers').on('value', snap=>{ TEACHERS = snap.val() || {}; populateTeacherDropdown(); populateInspectTeacherDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList(); completeTeacherRestoreIfPending(); });
   db.child('submissions').on('value', snap=>{ SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
   db.child('quranWeekly').on('value', snap=>{ QURAN_SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
   db.child('inspections').on('value', snap=>{ INSPECTIONS = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden')){ populateInspectMonthFilter(); renderInspectionRanking(); renderInspectionMatrix(); renderInspectionHistory(); } });
@@ -1496,7 +1578,6 @@ function attachFirebaseListeners(){
     if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList();
     if(currentTeacher && !document.getElementById('view-teacher-select').classList.contains('hidden') && !document.getElementById('t-tab-books').classList.contains('hidden')) renderTeacherBooksList();
   });
-  db.child('config/adminPin').once('value', snap=>{ if(!snap.exists()) db.child('config/adminPin').set('1234'); });
   db.child('inspectionItems').once('value', snap=>{
     if(!snap.exists()){
       const seed = {};
@@ -1532,18 +1613,30 @@ function populateTeacherDropdown(){
 }
 function goTeacherLogin(){ document.getElementById('t-login-err').textContent=''; showView('view-teacher-login'); }
 function teacherLogin(){
-  const id = document.getElementById('t-name').value;
-  const pin = document.getElementById('t-pin').value.trim();
-  if(!id){ document.getElementById('t-login-err').textContent='Fadlan dooro magacaaga.'; return; }
-  const t = TEACHERS[id];
-  if(!t || String(t.pin) !== pin){
-    document.getElementById('t-login-err').textContent='PIN-ka waa khalad.'; return;
-  }
-  currentTeacher = {id, name:t.name};
-  document.getElementById('t-welcome-name').textContent = t.name;
-  populateFasalDropdown();
-  showView('view-teacher-select');
-  switchTeacherTab('reports');
+  const email = document.getElementById('t-email').value.trim();
+  const pass = document.getElementById('t-pass').value;
+  const errEl = document.getElementById('t-login-err');
+  errEl.textContent = '';
+  if(!email || !pass){ errEl.textContent='Fadlan buuxi email iyo password.'; return; }
+  auth.signInWithEmailAndPassword(email, pass).then(cred=>{
+    return usersRef.child(cred.user.uid).once('value').then(snap=>{
+      const profile = snap.val();
+      if(!profile || profile.role !== 'teacher' || profile.dept !== CURRENT_DEPT){
+        auth.signOut();
+        errEl.textContent = 'Account-kan macalin kama aha qaybtan. La xiriir maamulka.';
+        return;
+      }
+      return db.child('teachers/'+profile.teacherKey).once('value').then(tSnap=>{
+        const t = tSnap.val();
+        if(!t){ auth.signOut(); errEl.textContent = 'Xogtaada macalinka lama helin. La xiriir maamulka.'; return; }
+        currentTeacher = {id: profile.teacherKey, name:t.name};
+        document.getElementById('t-welcome-name').textContent = t.name;
+        populateFasalDropdown();
+        showView('view-teacher-select');
+        switchTeacherTab('reports');
+      });
+    });
+  }).catch(err=>{ errEl.textContent = firebaseAuthErrorMessage(err); });
 }
 function switchTeacherTab(tab){
   document.querySelectorAll('#teacher-main-tabs > .tab').forEach(el=>el.classList.toggle('active', el.dataset.tab===tab));
@@ -1617,7 +1710,32 @@ function populateSectionDropdown(){
 }
 
 // ---------- Teacher batch (submit low performers) ----------
-function goAdminLogin(){ document.getElementById('a-login-err').textContent=''; showView('view-admin-login'); }
+function goAdminLogin(){
+  document.getElementById('a-login-err').textContent='';
+  showView('view-admin-login');
+  firebase.database().ref('deptAdminSetup/'+CURRENT_DEPT).once('value', snap=>{
+    const setupDone = !!snap.val();
+    document.getElementById('admin-login-card').classList.toggle('hidden', !setupDone);
+    document.getElementById('admin-setup-card').classList.toggle('hidden', setupDone);
+  });
+}
+function createFirstAdmin(){
+  const email = document.getElementById('a-setup-email').value.trim();
+  const pass = document.getElementById('a-setup-pass').value;
+  const errEl = document.getElementById('a-setup-err');
+  errEl.textContent = '';
+  if(!email || !pass){ errEl.textContent = 'Fadlan buuxi email iyo password.'; return; }
+  auth.createUserWithEmailAndPassword(email, pass).then(cred=>{
+    const uid = cred.user.uid;
+    return usersRef.child(uid).set({role:'admin', dept:CURRENT_DEPT}).then(()=>{
+      return firebase.database().ref('deptAdminSetup/'+CURRENT_DEPT).set(true);
+    });
+  }).then(()=>{
+    showView('view-admin');
+    switchAdminTab('dash');
+    renderStudentList(); renderTeacherList();
+  }).catch(err=>{ errEl.textContent = firebaseAuthErrorMessage(err); });
+}
 
 function openBatch(){
   const fasal = document.getElementById('sel-fasal').value;
@@ -1767,21 +1885,48 @@ function submitQuranBatch(){
 
 // ---------- Admin login ----------
 function adminLogin(){
-  const pin = document.getElementById('a-pin').value.trim();
-  db.child('config/adminPin').once('value', snap=>{
-    if(snap.val() === pin){
+  const email = document.getElementById('a-email').value.trim();
+  const pass = document.getElementById('a-pass').value;
+  const errEl = document.getElementById('a-login-err');
+  errEl.textContent = '';
+  if(!email || !pass){ errEl.textContent = 'Fadlan buuxi email iyo password.'; return; }
+  auth.signInWithEmailAndPassword(email, pass).then(cred=>{
+    return usersRef.child(cred.user.uid).once('value').then(snap=>{
+      const profile = snap.val();
+      if(!profile || profile.role !== 'admin' || profile.dept !== CURRENT_DEPT){
+        auth.signOut();
+        errEl.textContent = 'Account-kan maamule kama aha qaybtan.';
+        return;
+      }
       showView('view-admin');
       switchAdminTab('dash');
       renderStudentList(); renderTeacherList();
-    } else {
-      document.getElementById('a-login-err').textContent = 'PIN khalad ah.';
-    }
-  });
+    });
+  }).catch(err=>{ errEl.textContent = firebaseAuthErrorMessage(err); });
 }
-function changeAdminPin(){
-  const val = document.getElementById('new-admin-pin').value.trim();
-  if(!val){ toast('Geli PIN cusub.'); return; }
-  db.child('config/adminPin').set(val).then(()=>{ toast('PIN-ka waa la beddelay.'); document.getElementById('new-admin-pin').value=''; });
+function changeAdminPassword(){
+  const val = document.getElementById('new-admin-pass').value;
+  const errEl = document.getElementById('admin-pass-err');
+  errEl.textContent = '';
+  if(!val || val.length < 6){ errEl.textContent = 'Password-ku waa inuu ka koobnaadaa ugu yaraan 6 xaraf.'; return; }
+  auth.currentUser.updatePassword(val).then(()=>{
+    toast('Password-ka waa la beddelay.');
+    document.getElementById('new-admin-pass').value='';
+  }).catch(err=>{ errEl.textContent = firebaseAuthErrorMessage(err) + ' (Waxa laga yaabaa inaad markale soo gasho si aad u beddesho.)'; });
+}
+function addAdmin(){
+  const email = document.getElementById('new-admin-email').value.trim();
+  const pass = document.getElementById('new-admin-pass2').value;
+  const errEl = document.getElementById('add-admin-err');
+  errEl.textContent = '';
+  if(!email || !pass){ errEl.textContent = 'Fadlan buuxi email iyo password.'; return; }
+  if(pass.length < 6){ errEl.textContent = 'Password-ku waa inuu ka koobnaadaa ugu yaraan 6 xaraf.'; return; }
+  secondaryAuth.createUserWithEmailAndPassword(email, pass).then(cred=>{
+    return usersRef.child(cred.user.uid).set({role:'admin', dept:CURRENT_DEPT}).then(()=>secondaryAuth.signOut());
+  }).then(()=>{
+    toast('✅ Maamule cusub waa la daray.');
+    document.getElementById('new-admin-email').value=''; document.getElementById('new-admin-pass2').value='';
+  }).catch(err=>{ errEl.textContent = firebaseAuthErrorMessage(err); });
 }
 const LOWPERF_SUBTABS = ['dash','quran','progress'];
 function openAdminMenu(){
@@ -2295,7 +2440,7 @@ function renderTeacherList(){
       <div style="display:flex;align-items:flex-start;gap:10px;">
         <div style="flex:1;">
           <div class="student-name">${escapeHtml(t.name)}</div>
-          <div class="student-meta">PIN: ${escapeHtml(String(t.pin))}${t.phone ? ' · 📱 '+escapeHtml(t.phone) : ''}</div>
+          <div class="student-meta">${t.email ? '✉️ '+escapeHtml(t.email) : ''}${t.phone ? ' · 📱 '+escapeHtml(t.phone) : ''}</div>
         </div>
         <button class="btn-ghost btn-sm" onclick="toggleEditTeacher('${id}')">✏️ Wax ka beddel</button>
         <button class="btn-danger btn-sm" onclick="deleteTeacher('${id}')">Tirtir</button>
@@ -2311,14 +2456,11 @@ function renderTeacherList(){
         </div>
       </div>
       <div id="t-edit-${id}" class="hidden" style="margin-top:10px;">
+        <p class="muted">Email-ka macalinku isbeddeli karo halkan — waa isla email-ka ay ku galaan.</p>
         <div class="row">
           <div>
             <label>Magaca</label>
             <input type="text" id="edit-t-name-${id}" value="${escapeHtml(t.name)}">
-          </div>
-          <div>
-            <label>PIN</label>
-            <input type="text" id="edit-t-pin-${id}" value="${escapeHtml(String(t.pin))}" maxlength="8">
           </div>
           <div>
             <label>Telefoonka (WhatsApp)</label>
@@ -2341,26 +2483,40 @@ function toggleEditTeacher(id){
 }
 function saveTeacherEdit(id){
   const name = document.getElementById('edit-t-name-'+id).value.trim();
-  const pin = document.getElementById('edit-t-pin-'+id).value.trim();
   const phone = normalizePhone(document.getElementById('edit-t-phone-'+id).value);
-  if(!name || !pin){ toast('Fadlan buuxi magaca iyo PIN-ka.'); return; }
-  db.child('teachers/'+id).update({name, pin, phone}).then(()=>{
+  if(!name){ toast('Fadlan buuxi magaca.'); return; }
+  db.child('teachers/'+id).update({name, phone}).then(()=>{
     toast('Macalinka waa la cusboonaysiiyay.');
   });
 }
 function addTeacher(){
   const name = document.getElementById('new-t-name').value.trim();
-  const pin = document.getElementById('new-t-pin').value.trim();
+  const email = document.getElementById('new-t-email').value.trim();
+  const pass = document.getElementById('new-t-pass').value;
   const phone = normalizePhone(document.getElementById('new-t-phone').value);
-  if(!name || !pin){ toast('Fadlan buuxi magaca iyo PIN-ka.'); return; }
-  db.child('teachers').push({name, pin, phone}).then(()=>{
-    toast('Macalin waa la daray.');
-    document.getElementById('new-t-name').value=''; document.getElementById('new-t-pin').value=''; document.getElementById('new-t-phone').value='';
-  });
+  const errEl = document.getElementById('add-teacher-err');
+  errEl.textContent = '';
+  if(!name || !email || !pass){ errEl.textContent = 'Fadlan buuxi magaca, email-ka, iyo password-ka.'; return; }
+  if(pass.length < 6){ errEl.textContent = 'Password-ku waa inuu ka koobnaadaa ugu yaraan 6 xaraf.'; return; }
+  const dept = CURRENT_DEPT;
+  secondaryAuth.createUserWithEmailAndPassword(email, pass).then(cred=>{
+    const uid = cred.user.uid;
+    const key = db.child('teachers').push().key;
+    return db.child('teachers/'+key).set({name, email, phone, uid}).then(()=>{
+      return usersRef.child(uid).set({role:'teacher', dept, teacherKey:key, name});
+    });
+  }).then(()=>secondaryAuth.signOut()).then(()=>{
+    toast('✅ Macalin waa la daray.');
+    document.getElementById('new-t-name').value=''; document.getElementById('new-t-email').value=''; document.getElementById('new-t-pass').value=''; document.getElementById('new-t-phone').value='';
+  }).catch(err=>{ errEl.textContent = firebaseAuthErrorMessage(err); });
 }
 function deleteTeacher(id){
-  if(!confirm('Ma hubtaa inaad tirtirto macallinkan?')) return;
-  db.child('teachers/'+id).remove().then(()=>toast('Waa la tirtiray.'));
+  if(!confirm('Ma hubtaa inaad tirtirto macallinkan? Gelitaankiisu mar dambe ma shaqayn doono.')) return;
+  const t = TEACHERS[id];
+  db.child('teachers/'+id).remove().then(()=>{
+    if(t && t.uid) usersRef.child(t.uid).remove();
+    toast('Waa la tirtiray.');
+  });
 }
 
 // ---------- Admin Inspection (Taftiishka Maamulka) ----------
@@ -3105,6 +3261,10 @@ function deleteBook(id){
 function escapeHtml(str){
   return String(str==null?'':str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+// ---------- App init ----------
+// (Firebase Auth's onAuthStateChanged listener above handles restoring a remembered login automatically.)
+
 </script>
 </body>
 </html>
