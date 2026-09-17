@@ -1972,7 +1972,12 @@ function switchAdminTab(tab){
   if(tab==='teachers') renderTeacherList();
   if(tab==='inspect'){ populateInspectTeacherDropdown(); populateInspectMonthFilter(); renderInspectionRanking(); renderInspectionMatrix(); renderInspectionHistory(); }
   if(tab==='meetings'){ if(window.QoraalMobileApp) QoraalMobileApp.init(); }
-  if(tab==='settings'){ renderInspectionItemsSettings(); renderBooksSettingsList(); }
+  if(tab==='settings'){
+    renderInspectionItemsSettings();
+    renderBooksSettingsList();
+    const deptSel = document.getElementById('new-book-dept');
+    if(deptSel) deptSel.value = CURRENT_DEPT;
+  }
 }
 
 // ---------- Dashboard: ranked flagged students ----------
@@ -3249,8 +3254,8 @@ function uploadNewBook(){
 function renderBooksSettingsList(){
   const el = document.getElementById('books-settings-list');
   if(!el) return;
-  const entries = Object.entries(BOOKS_LIBRARY);
-  if(entries.length===0){ el.innerHTML = '<p class="muted">Weli buug lama soo gelin.</p>'; return; }
+  const entries = Object.entries(BOOKS_LIBRARY).filter(([id,b])=> b.dept===CURRENT_DEPT);
+  if(entries.length===0){ el.innerHTML = '<p class="muted">Weli buug lama soo gelin qaybtan.</p>'; return; }
   el.innerHTML = entries.map(([id,b])=>`
     <div class="student-row">
       <div style="flex:1;">
